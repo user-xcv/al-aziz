@@ -5,7 +5,7 @@ import { fetchWareHouseData } from './features/wareHouse/wareHouseThunk'
 import MainLayout from './layout/mainLayout'
 import OrderForm from './features/enterData/OrderForm.'
 import HistoryForm from './features/history/HistoryForm'
-import WareHouseForm from './features/wareHouse/wareHouseForm'
+import WareHouseForm from './features/wareHouse/WareHouseForm'
 
 
 const App = () => {
