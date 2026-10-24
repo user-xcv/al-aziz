@@ -85,84 +85,84 @@ const HistoryForm = () => {
     )
 
     return (
-        <div className="space-y-4">
-            {/* Tepadagi Stanoklar Xarajati Grid'i */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <p className="text-[10px] font-medium text-slate-400 truncate">Bazis</p>
-                    <p className="text-xs font-semibold text-slate-800 mt-0.5">
+        <div className="space-y-4 font-sans text-slate-700">
+            {/* Tepadagi Stanoklar Xarajati Grid'i (Minimalist Card) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Bazis</p>
+                    <p className="text-sm font-bold text-slate-800 mt-1">
                         {stats.bazis.toLocaleString('uz-UZ')} so'm
                     </p>
                 </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-2xs">
-                    <p className="text-[10px] font-medium text-slate-400 truncate">Arra</p>
-                    <p className="text-xs font-semibold text-slate-800 mt-0.5">
+                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Arra</p>
+                    <p className="text-sm font-bold text-slate-800 mt-1">
                         {stats.cutting.toLocaleString('uz-UZ')} so'm
                     </p>
                 </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-sm">
-                    <p className="text-[10px] font-medium text-slate-400 truncate">Kromka</p>
-                    <p className="text-xs font-semibold text-slate-800 mt-0.5">
+                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Kromka</p>
+                    <p className="text-sm font-bold text-slate-800 mt-1">
                         {stats.kromka.toLocaleString('uz-UZ')} so'm
                     </p>
                 </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-sm">
-                    <p className="text-[10px] font-medium text-slate-400 truncate">Rover</p>
-                    <p className="text-xs font-semibold text-slate-800 mt-0.5">
+                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
+                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Rover</p>
+                    <p className="text-sm font-bold text-slate-800 mt-1">
                         {stats.rover.toLocaleString('uz-UZ')} so'm
                     </p>
                 </div>
             </div>
 
-            {/* Asosiy History Ro'yxat Blok */}
-            <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col min-h-[480px]">
+            {/* Asosiy Tarix Kartochkasi (Minimalist Card Layout) */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden flex flex-col">
                 
                 {/* Header & Search & Date Filter */}
-                <div className="p-3.5 sm:p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-slate-50/50">
+                <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
                     <div className="flex items-center gap-2">
-                        <Receipt className="w-4 h-4 text-slate-700" />
-                        <h2 className="text-sm font-semibold text-slate-900">
+                        <Receipt className="w-4 h-4 text-slate-600" />
+                        <h2 className="text-sm font-bold text-slate-800">
                             Xaridlar tarixi
                         </h2>
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-200/60 text-slate-700">
+                        <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
                             {filteredRecords.length} ta
                         </span>
                     </div>
 
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
                         <select
                             value={dateFilter}
                             onChange={(e) => setDateFilter(e.target.value)}
-                            className="bg-white border border-slate-200 focus:border-slate-800 outline-none rounded-xl px-2.5 py-1 text-xs text-slate-700 font-medium cursor-pointer"
+                            className="bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs text-slate-700 font-medium cursor-pointer shadow-2xs"
                         >
                             <option value="all">Barcha davr</option>
                             <option value="month">Shu oy</option>
                         </select>
 
-                        <div className="relative w-full sm:w-44">
-                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                        <div className="relative w-full sm:w-52">
+                            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                             <input
                                 type="text"
                                 placeholder="Xaridor ismi..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white border border-slate-200 focus:border-slate-800 outline-none rounded-xl pl-8 pr-2.5 py-1 text-xs text-slate-800 transition-all placeholder:text-slate-400"
+                                className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md pl-9 pr-3 py-1.5 text-xs text-slate-800 transition-all placeholder:text-slate-400 shadow-2xs"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* Ro'yxat qismi */}
-                <div className="p-3.5 sm:p-4">
+                <div className="p-4">
                     {isLoading ? (
                         <p className="text-center text-xs text-slate-400 py-10">Yuklanmoqda...</p>
                     ) : filteredRecords.length === 0 ? (
-                        <div className="h-32 flex flex-col items-center justify-center text-center text-slate-400">
+                        <div className="h-36 flex flex-col items-center justify-center text-center text-slate-400">
                             <Receipt className="w-8 h-8 stroke-[1.25] text-slate-300 mb-1.5" />
                             <p className="text-xs font-medium text-slate-600">Ma'lumot topilmadi</p>
                         </div>
                     ) : (
-                        <div className="space-y-2.5 max-h-[240px] overflow-y-auto pr-1">
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                             {filteredRecords.map((item) => {
                                 const payoffVal = Number(item.payoff || 0)
                                 const isPositive = payoffVal >= 0
@@ -170,14 +170,14 @@ const HistoryForm = () => {
                                     <div
                                         key={item.id}
                                         onClick={() => setSelectedOrder(item)}
-                                        className="group p-3 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-white hover:border-slate-200/90 transition-all flex items-center justify-between gap-3 cursor-pointer shadow-2xs hover:shadow-xs"
+                                        className="group p-3 rounded-md border border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center justify-between gap-3 cursor-pointer"
                                     >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isPositive ? 'bg-emerald-100/70 text-emerald-700' : 'bg-rose-100/70 text-rose-700'}`}>
-                                                {isPositive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                                        <div className="flex items-center gap-3 min-w-0">
+                                            <div className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${isPositive ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                                                {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
                                             </div>
                                             <div className="min-w-0">
-                                                <p className="text-xs font-semibold text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                                                <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
                                                     {item.clients?.name || 'Noma\'lum'}
                                                 </p>
                                                 <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
@@ -187,7 +187,7 @@ const HistoryForm = () => {
                                             </div>
                                         </div>
 
-                                        <div className="flex items-center gap-3 shrink-0">
+                                        <div className="flex items-center gap-4 shrink-0">
                                             <div className="text-right">
                                                 <span className={`text-xs font-bold block ${isPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                                                     {payoffVal.toLocaleString('uz-UZ')} so'm
@@ -203,9 +203,9 @@ const HistoryForm = () => {
                                                     handleDelete(item.id)
                                                 }}
                                                 title="O'chirish"
-                                                className="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-all p-1 rounded-md hover:bg-rose-50"
+                                                className="text-slate-300 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-all p-1 rounded hover:bg-rose-50"
                                             >
-                                                <Trash2 className="w-3.5 h-3.5" />
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
                                     </div>
@@ -215,55 +215,51 @@ const HistoryForm = () => {
                     )}
                 </div>
 
-                {/* PASTKI ANALITIKA PANEL (Pastga qadab qo'yilgan) */}
-                <div className="mt-auto bg-slate-50 border-t border-slate-200/80 p-3.5 sm:p-4 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-                            <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
-                           Hisobot ({dateFilter === 'month' ? 'Shu oy' : 'Barcha davr'})
-                        </h3>
-                    </div>
+                {/* PASTKI ANALITIKA PANEL */}
+                <div className="mt-auto bg-slate-50/80 border-t border-slate-200 p-4 space-y-3">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                        <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+                        Hisobot ({dateFilter === 'month' ? 'Shu oy' : 'Barcha davr'})
+                    </h3>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-                        <div className="bg-white p-2 rounded-xl border border-slate-200/60 shadow-2xs">
-                            <span className="text-slate-400 text-[9px] block">Jami Olingan Pul</span>
-                            <span className="font-bold text-slate-800 text-xs">{stats.overallMoney.toLocaleString('uz-UZ')} so'm</span>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
+                            <span className="text-slate-400 text-[10px] block font-medium">Jami Olingan Pul</span>
+                            <span className="font-bold text-slate-800 text-xs mt-0.5 block">{stats.overallMoney.toLocaleString('uz-UZ')} so'm</span>
                         </div>
-                        <div className="bg-white p-2 rounded-xl border border-slate-200/60 shadow-2xs">
-                            <span className="text-slate-400 text-[9px] block">Jami Sof Foyda</span>
-                            <span className="font-bold text-emerald-600 text-xs">{stats.totalPayoff.toLocaleString('uz-UZ')} so'm</span>
+                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
+                            <span className="text-slate-400 text-[10px] block font-medium">Jami Sof Foyda</span>
+                            <span className="font-bold text-emerald-600 text-xs mt-0.5 block">{stats.totalPayoff.toLocaleString('uz-UZ')} so'm</span>
                         </div>
-                        <div className="bg-white p-2 rounded-xl border border-slate-200/60 shadow-2xs">
-                            <span className="text-slate-400 text-[9px] block">Usta Haqqi</span>
-                            <span className="font-semibold text-slate-700 text-xs">{stats.masterFee.toLocaleString('uz-UZ')} so'm</span>
+                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
+                            <span className="text-slate-400 text-[10px] block font-medium">Usta Haqqi</span>
+                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{stats.masterFee.toLocaleString('uz-UZ')} so'm</span>
                         </div>
-                        <div className="bg-white p-2 rounded-xl border border-slate-200/60 shadow-2xs">
-                            <span className="text-slate-400 text-[9px] block">Zapchast Xarajati</span>
-                            <span className="font-semibold text-slate-700 text-xs">{stats.spares.toLocaleString('uz-UZ')} so'm</span>
+                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
+                            <span className="text-slate-400 text-[10px] block font-medium">Zapchast Xarajati</span>
+                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{stats.spares.toLocaleString('uz-UZ')} so'm</span>
                         </div>
-                        <div className="bg-white p-2 rounded-xl border border-slate-200/60 shadow-2xs">
-                            <span className="text-slate-400 text-[9px] block">Sotilgan Materiallar</span>
-                            <span className="font-semibold text-slate-700 text-[11px]">{stats.totalMaterialCount} dona</span>
+                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
+                            <span className="text-slate-400 text-[10px] block font-medium">Sotilgan Materiallar</span>
+                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{stats.totalMaterialCount} dona</span>
                         </div>
-                        <div className="bg-white p-2 rounded-xl border border-slate-200/60 shadow-2xs">
-                            <span className="text-slate-400 text-[9px] block">Stanoklar Jami</span>
-                            <span className="font-semibold text-slate-700 text-xs">{(stats.bazis + stats.cutting + stats.kromka + stats.rover).toLocaleString('uz-UZ')} so'm</span>
+                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
+                            <span className="text-slate-400 text-[10px] block font-medium">Stanoklar Jami</span>
+                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{(stats.bazis + stats.cutting + stats.kromka + stats.rover).toLocaleString('uz-UZ')} so'm</span>
                         </div>
                     </div>
                 </div>
 
                 {/* Sticky Summary Bar */}
                 {filteredRecords.length > 0 && (
-                    <div className="p-3 bg-slate-900 text-white flex items-center justify-between border-t border-slate-800">
+                    <div className="p-3 bg-blue-600 text-white flex items-center justify-between border-t border-blue-700">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-emerald-400" />
-                            <div>
-                                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
-                                    Jami qilingan sof foyda
-                                </p>
-                            </div>
+                            <TrendingUp className="w-4 h-4 text-blue-200" />
+                            <p className="text-xs font-semibold uppercase tracking-wider">
+                                Jami qilingan sof foyda
+                            </p>
                         </div>
-                        <span className="text-sm font-bold text-emerald-400">
+                        <span className="text-sm font-bold">
                             {stats.totalPayoff.toLocaleString('uz-UZ')} so'm
                         </span>
                     </div>
@@ -272,14 +268,14 @@ const HistoryForm = () => {
 
             {/* TO'LIQ INFORMATSIYA MODAL OYNASI */}
             {selectedOrder && (
-                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-slate-100 space-y-4 max-h-[90vh] overflow-y-auto">
+                <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+                    <div className="bg-white rounded-lg max-w-lg w-full p-5 shadow-xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
                         
                         {/* Modal Header */}
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div>
-                                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                                    <User className="w-4 h-4 text-indigo-600" />
+                                <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <User className="w-4 h-4 text-blue-600" />
                                     {selectedOrder.clients?.name || 'Noma\'lum xaridor'}
                                 </h3>
                                 <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-0.5">
@@ -289,23 +285,23 @@ const HistoryForm = () => {
                             </div>
                             <button
                                 onClick={() => setSelectedOrder(null)}
-                                className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+                                className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
 
                         {/* Asosiy Pul / Sof Foyda */}
-                        <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+                        <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-md border border-slate-200">
                             <div>
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Olingan Pul</p>
-                                <p className="text-sm font-extrabold text-slate-900 mt-0.5">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Olingan Pul</p>
+                                <p className="text-xs font-bold text-slate-800 mt-0.5">
                                     {Number(selectedOrder.overallmoney || 0).toLocaleString('uz-UZ')} so'm
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Sof Foyda (Payoff)</p>
-                                <p className={`text-sm font-extrabold mt-0.5 ${Number(selectedOrder.payoff || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Sof Foyda</p>
+                                <p className={`text-xs font-bold mt-0.5 ${Number(selectedOrder.payoff || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
                                     {Number(selectedOrder.payoff || 0).toLocaleString('uz-UZ')} so'm
                                 </p>
                             </div>
@@ -315,11 +311,11 @@ const HistoryForm = () => {
                         {selectedOrder.order_materials && selectedOrder.order_materials.length > 0 && (
                             <div className="space-y-1.5">
                                 <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                                    <Layers className="w-3.5 h-3.5 text-indigo-500" /> Ishlatilgan Materiallar
+                                    <Layers className="w-3.5 h-3.5 text-blue-600" /> Ishlatilgan Materiallar
                                 </p>
-                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-2 max-h-36 overflow-y-auto">
+                                <div className="bg-slate-50 p-3 rounded-md border border-slate-200 space-y-2 max-h-36 overflow-y-auto">
                                     {selectedOrder.order_materials.map((mat) => (
-                                        <div key={mat.id} className="flex justify-between items-center text-xs text-slate-700 border-b border-slate-200/50 pb-1.5 last:border-none last:pb-0">
+                                        <div key={mat.id} className="flex justify-between items-center text-xs text-slate-700 border-b border-slate-200/60 pb-1.5 last:border-none last:pb-0">
                                             <span className="font-medium">{mat.material_name}: <b className="text-slate-900">{mat.count} dona</b> (x {Number(mat.price).toLocaleString('uz-UZ')} so'm)</span>
                                             <span className="font-bold text-slate-900">{Number(mat.totalPrice).toLocaleString('uz-UZ')} so'm</span>
                                         </div>
@@ -331,45 +327,39 @@ const HistoryForm = () => {
                         {/* Barcha Stanoklar va Xarajatlar Tafsiloti */}
                         <div className="space-y-1.5">
                             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                                <Wrench className="w-3.5 h-3.5 text-indigo-500" /> Stanoklar va Xarajatlar
+                                <Wrench className="w-3.5 h-3.5 text-blue-600" /> Stanoklar va Xarajatlar
                             </p>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium">Bazis:</span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Bazis:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.bazis || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium">Arra (Cutting):</span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Arra:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.cutting || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium">Kromka:</span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Kromka:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.kromka || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium">Teshish (Piercing):</span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Teshish:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.piercing || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium">Rover:</span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Rover:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.rover || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium flex items-center gap-1">
-                                        <Wrench className="w-3 h-3 text-slate-400" /> Usta haqqi:
-                                    </span>
-                                    <span className="font-bold text-indigo-600">{Number(selectedOrder.masterfee || 0).toLocaleString('uz-UZ')} so'm</span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Usta haqqi:</span>
+                                    <span className="font-bold text-blue-600">{Number(selectedOrder.masterfee || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium flex items-center gap-1">
-                                        <Cpu className="w-3 h-3 text-slate-400" /> Zapchast:
-                                    </span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Zapchast:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.spares || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
-                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-100">
-                                    <span className="text-slate-500 font-medium flex items-center gap-1">
-                                        <HelpCircle className="w-3 h-3 text-slate-400" /> Boshqa xarajat:
-                                    </span>
+                                <div className="flex justify-between items-center p-2.5 bg-slate-50 rounded-md border border-slate-200">
+                                    <span className="text-slate-500">Boshqa xarajat:</span>
                                     <span className="font-bold text-slate-800">{Number(selectedOrder.anotherexpenses || 0).toLocaleString('uz-UZ')} so'm</span>
                                 </div>
                             </div>
@@ -377,7 +367,7 @@ const HistoryForm = () => {
 
                         <button
                             onClick={() => setSelectedOrder(null)}
-                            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2.5 rounded-xl text-xs transition-all mt-2 cursor-pointer shadow-sm"
+                            className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-md text-xs transition-all mt-2 cursor-pointer shadow-2xs"
                         >
                             Yopish
                         </button>
