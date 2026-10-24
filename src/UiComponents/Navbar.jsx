@@ -17,7 +17,7 @@ const Navbar = ({ activeTab }) => {
       {/* Brand & Page Title */}
       <div className="flex items-center gap-6">
         <span className="font-bold text-base tracking-wide flex items-center gap-2">
-          Asmon
+          Al-aziz
         </span>
         <h1 className="text-xs font-medium text-blue-100 border-l border-blue-400/60 pl-4 hidden sm:block">
           {getPageTitle()}
