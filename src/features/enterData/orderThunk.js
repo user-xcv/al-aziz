@@ -1,6 +1,8 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import { createOrderAPI,  } from './orderService'; // fetchOrdersAPI ni to'g'ri chaqiramiz
+import { createOrderAPI } from './orderService';
 import { fetchHistoryOrders } from '../history/historyThunk';
+import { fetchHistoryAPI } from '../history/historyService';
+import { fetchWareHouseData } from '../wareHouse/wareHouseThunk';
 
 // Zakazni bazaga saqlash Thunk'i
 export const createOrder = createAsyncThunk(
@@ -8,10 +10,8 @@ export const createOrder = createAsyncThunk(
   async (formData, { dispatch, rejectWithValue }) => {
     try {
       const response = await createOrderAPI(formData);
-      
-      // MUHIM: Zakaz saqlangandan so'ng, refresh qilmasdan history'ga qo'shish uchun fetchOrders ni chaqiramiz
-     dispatch(fetchHistoryOrders());
-
+      dispatch(fetchHistoryOrders());
+      dispatch(fetchWareHouseData());
       return response;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -25,7 +25,7 @@ export const fetchOrders = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // Bu yerda orderService dagi API funksiya chaqirilishi kerak (rekursiya bo'lmasligi uchun)
-      const data = await fetchOrdersAPI(); 
+      const data = await fetchHistoryAPI();
       return data;
     } catch (error) {
       return rejectWithValue(error.message);

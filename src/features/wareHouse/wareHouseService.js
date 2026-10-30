@@ -1,25 +1,23 @@
 import { supabase } from '../../api/supabase'
 
-// Barcha ma'lumotlarni (Kategoriyalar, Formatlar, Materiallar) birga olish
 export const fetchWareHouseDataAPI = async () => {
   const { data: categories, error: catErr } = await supabase
     .from('categories')
-    .select('*, formats(*), materials(*)')
+    .select('*, formats(*)')
     .order('id', { ascending: true })
 
   if (catErr) throw catErr
 
   const { data: materials, error: matErr } = await supabase
     .from('materials')
-    .select('*, categories(name), formats(name)')
+    .select('*, categories(name)')
     .order('id', { ascending: false })
 
   if (matErr) throw matErr
 
-  return { categories, materials }
+  return { categories: categories || [], materials: materials || [] }
 }
 
-// 1. Yangi Kategoriya qo'shish (masalan: LDSP)
 export const addCategoryAPI = async (categoryName) => {
   const { data, error } = await supabase
     .from('categories')
@@ -31,7 +29,6 @@ export const addCategoryAPI = async (categoryName) => {
   return data
 }
 
-// 2. Yangi Format qo'shish (masalan: 4.57 kv)
 export const addFormatAPI = async (categoryId, formatName) => {
   const { data, error } = await supabase
     .from('formats')
@@ -43,12 +40,20 @@ export const addFormatAPI = async (categoryId, formatName) => {
   return data
 }
 
-// 3. Yangi Material qo'shish / update
+const toMaterialRow = (materialData) => ({
+  category_id: Number(materialData.category_id),
+  format: materialData.format_id ? String(materialData.format_id) : null,
+  name: materialData.name,
+  stock_count: Number(materialData.stock_count),
+  cost_price: Number(materialData.cost_price),
+  sell_price: Number(materialData.sell_price),
+})
+
 export const addMaterialAPI = async (materialData) => {
   const { data, error } = await supabase
     .from('materials')
-    .insert([materialData])
-    .select('*, categories(name), formats(name)')
+    .insert([toMaterialRow(materialData)])
+    .select('*, categories(name)')
     .single()
 
   if (error) throw error
@@ -56,11 +61,15 @@ export const addMaterialAPI = async (materialData) => {
 }
 
 export const updateMaterialAPI = async ({ id, updatedFields }) => {
+  const row = updatedFields.format_id !== undefined
+    ? toMaterialRow(updatedFields)
+    : updatedFields
+
   const { data, error } = await supabase
     .from('materials')
-    .update(updatedFields)
+    .update(row)
     .eq('id', id)
-    .select('*, categories(name), formats(name)')
+    .select('*, categories(name)')
     .single()
 
   if (error) throw error
@@ -75,4 +84,34 @@ export const deleteMaterialAPI = async (id) => {
 
   if (error) throw error
   return id
+}
+
+export const decreaseStockAPI = async (id, qty) => {
+  const { data: current, error: fetchErr } = await supabase
+    .from('materials')
+    .select('stock_count, name')
+    .eq('id', id)
+    .single()
+
+  if (fetchErr) throw fetchErr
+
+  const next = Number(current.stock_count) - Number(qty)
+  if (next < 0) {
+    throw new Error(`${current.name} omborda yetarli emas`)
+  }
+
+  const { data, error } = await supabase
+    .from('materials')
+    .update({ stock_count: next })
+    .eq('id', id)
+    .select('*, categories(name)')
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export const matchesFormat = (material, format) => {
+  const stored = material.format == null ? '' : String(material.format)
+  return stored === String(format.id) || stored === format.name
 }

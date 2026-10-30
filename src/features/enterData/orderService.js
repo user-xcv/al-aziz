@@ -1,4 +1,5 @@
 import { supabase } from "../../api/supabase";
+import { decreaseStockAPI } from "../wareHouse/wareHouseService";
 
 export const createOrderAPI = async (formData) => {
   // 1. Mijozni qo'shamiz
@@ -46,6 +47,12 @@ export const createOrderAPI = async (formData) => {
       .insert(materialsToInsert);
 
     if (matError) throw new Error(matError.message);
+
+    for (const mat of formData.materials) {
+      if (mat.material_id) {
+        await decreaseStockAPI(mat.material_id, mat.count)
+      }
+    }
   }
 
   return { success: true };
