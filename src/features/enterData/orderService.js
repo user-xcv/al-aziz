@@ -45,7 +45,7 @@ export const createOrderAPI = async (formData) => {
       count: mat.count,
       price: mat.price,
       totalPrice: mat.totalPrice,
-      format_id: mat.format_id || null,
+      format_id: mat.format_id ? Number(mat.format_id) : null,
       format_name: mat.format_name || null
     }));
 
