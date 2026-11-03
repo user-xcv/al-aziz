@@ -52,7 +52,7 @@ const OrderForm = () => {
     return materials.map((item) => {
       const category = categories.find((c) => String(c.id) === String(item.category_id))
       const format = (category?.formats || []).find(
-        (f) => String(f.id) === String(item.format) || f.name === item.format
+        (f) => String(f.id) === String(item.format_id) || f.name === item.format_id
       )
       const label = [category?.name, format?.name, item.name].filter(Boolean).join(' · ')
       return { ...item, label }
