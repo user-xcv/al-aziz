@@ -1,11 +1,17 @@
 import React, { useState } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 import { deleteHistoryOrder } from './historyThunk'
+import { fetchWareHouseData } from '../wareHouse/wareHouseThunk'
+import { fetchPayments } from '../payments/paymentsThunk'
+import { getOrderPaid, getOrderTotal } from '../enterData/orderAmounts'
+import {
+    getMaterialLineFinancials,
+    getOrderFinancials,
+} from '../enterData/orderCalculations'
 import {
     Receipt,
     Search,
     Calendar,
-    TrendingUp,
     ArrowUpRight,
     ArrowDownRight,
     Trash2,
@@ -13,8 +19,6 @@ import {
     X,
     Clock,
     Wrench,
-    Cpu,
-    HelpCircle,
     Layers
 } from 'lucide-react'
 
@@ -23,8 +27,9 @@ const HistoryForm = () => {
     const { historyList, isLoading } = useSelector((state) => state.history)
 
     const [searchTerm, setSearchTerm] = useState('')
-    const [selectedOrder, setSelectedOrder] = useState(null)
+    const [selectedOrderId, setSelectedOrderId] = useState(null)
     const [dateFilter, setDateFilter] = useState('all')
+    const selectedOrder = historyList.find((order) => order.id === selectedOrderId) || null
 
     // Sana bo'yicha filterlash
     const filteredByDate = historyList.filter(item => {
@@ -47,82 +52,23 @@ const HistoryForm = () => {
     const handleDelete = (id) => {
         if (window.confirm("Haqiqatan ham bu tarixni o'chirmoqchimisiz?")) {
             dispatch(deleteHistoryOrder(id))
+                .unwrap()
+                .then(() => {
+                    dispatch(fetchWareHouseData())
+                    dispatch(fetchPayments())
+                })
+                .catch((error) => window.alert(`Xatolik: ${error}`))
         }
     }
 
-    // Statistika va umumiy hisoblar
-    const stats = filteredRecords.reduce(
-        (acc, item) => {
-            acc.totalPayoff += Number(item.payoff || 0)
-            acc.overallMoney += Number(item.overallmoney || 0)
-            acc.bazis += Number(item.bazis || 0)
-            acc.cutting += Number(item.cutting || 0)
-            acc.kromka += Number(item.kromka || 0)
-            acc.rover += Number(item.rover || 0)
-            acc.masterFee += Number(item.masterfee || 0)
-            acc.spares += Number(item.spares || 0)
-
-            if (item.order_materials && Array.isArray(item.order_materials)) {
-                item.order_materials.forEach(mat => {
-                    acc.totalMaterialCount += Number(mat.count || 0)
-                    acc.totalMaterialCost += Number(mat.totalprice || 0)
-                })
-            }
-            return acc
-        },
-        { 
-            totalPayoff: 0, 
-            overallMoney: 0, 
-            bazis: 0, 
-            cutting: 0, 
-            kromka: 0, 
-            rover: 0, 
-            masterFee: 0, 
-            spares: 0,
-            totalMaterialCount: 0,
-            totalMaterialCost: 0
-        }
-    )
-
     return (
         <div className="space-y-4 font-sans text-slate-700">
-            {/* Tepadagi Stanoklar Xarajati Grid'i (Minimalist Card) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Bazis</p>
-                    <p className="text-sm font-bold text-slate-800 mt-1">
-                        {stats.bazis.toLocaleString('uz-UZ')} so'm
-                    </p>
-                </div>
-                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Arra</p>
-                    <p className="text-sm font-bold text-slate-800 mt-1">
-                        {stats.cutting.toLocaleString('uz-UZ')} so'm
-                    </p>
-                </div>
-                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Kromka</p>
-                    <p className="text-sm font-bold text-slate-800 mt-1">
-                        {stats.kromka.toLocaleString('uz-UZ')} so'm
-                    </p>
-                </div>
-                <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-xs">
-                    <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Rover</p>
-                    <p className="text-sm font-bold text-slate-800 mt-1">
-                        {stats.rover.toLocaleString('uz-UZ')} so'm
-                    </p>
-                </div>
-            </div>
-
-            {/* Asosiy Tarix Kartochkasi (Minimalist Card Layout) */}
             <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden flex flex-col">
-                
-                {/* Header & Search & Date Filter */}
                 <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
                     <div className="flex items-center gap-2">
                         <Receipt className="w-4 h-4 text-slate-600" />
                         <h2 className="text-sm font-bold text-slate-800">
-                            Xaridlar tarixi
+                            Buyurtmalar tarixi
                         </h2>
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
                             {filteredRecords.length} ta
@@ -152,7 +98,6 @@ const HistoryForm = () => {
                     </div>
                 </div>
 
-                {/* Ro'yxat qismi */}
                 <div className="p-4">
                     {isLoading ? (
                         <p className="text-center text-xs text-slate-400 py-10">Yuklanmoqda...</p>
@@ -169,7 +114,7 @@ const HistoryForm = () => {
                                 return (
                                     <div
                                         key={item.id}
-                                        onClick={() => setSelectedOrder(item)}
+                                        onClick={() => setSelectedOrderId(item.id)}
                                         className="group p-3 rounded-md border border-slate-100 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-200 transition-all flex items-center justify-between gap-3 cursor-pointer"
                                     >
                                         <div className="flex items-center gap-3 min-w-0">
@@ -193,7 +138,7 @@ const HistoryForm = () => {
                                                     {payoffVal.toLocaleString('uz-UZ')} so'm
                                                 </span>
                                                 <span className="text-[10px] text-slate-400 block">
-                                                    Olingan: {Number(item.overallmoney || 0).toLocaleString('uz-UZ')}
+                                                    Buyurtma: {getOrderTotal(item).toLocaleString('uz-UZ')}
                                                 </span>
                                             </div>
 
@@ -215,55 +160,6 @@ const HistoryForm = () => {
                     )}
                 </div>
 
-                {/* PASTKI ANALITIKA PANEL */}
-                <div className="mt-auto bg-slate-50/80 border-t border-slate-200 p-4 space-y-3">
-                    <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
-                        <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
-                        Hisobot ({dateFilter === 'month' ? 'Shu oy' : 'Barcha davr'})
-                    </h3>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
-                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
-                            <span className="text-slate-400 text-[10px] block font-medium">Jami Olingan Pul</span>
-                            <span className="font-bold text-slate-800 text-xs mt-0.5 block">{stats.overallMoney.toLocaleString('uz-UZ')} so'm</span>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
-                            <span className="text-slate-400 text-[10px] block font-medium">Jami Sof Foyda</span>
-                            <span className="font-bold text-emerald-600 text-xs mt-0.5 block">{stats.totalPayoff.toLocaleString('uz-UZ')} so'm</span>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
-                            <span className="text-slate-400 text-[10px] block font-medium">Usta Haqqi</span>
-                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{stats.masterFee.toLocaleString('uz-UZ')} so'm</span>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
-                            <span className="text-slate-400 text-[10px] block font-medium">Zapchast Xarajati</span>
-                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{stats.spares.toLocaleString('uz-UZ')} so'm</span>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
-                            <span className="text-slate-400 text-[10px] block font-medium">Sotilgan Materiallar</span>
-                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{stats.totalMaterialCount} dona</span>
-                        </div>
-                        <div className="bg-white p-2.5 rounded-md border border-slate-200 shadow-2xs">
-                            <span className="text-slate-400 text-[10px] block font-medium">Stanoklar Jami</span>
-                            <span className="font-semibold text-slate-700 text-xs mt-0.5 block">{(stats.bazis + stats.cutting + stats.kromka + stats.rover).toLocaleString('uz-UZ')} so'm</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Sticky Summary Bar */}
-                {filteredRecords.length > 0 && (
-                    <div className="p-3 bg-blue-600 text-white flex items-center justify-between border-t border-blue-700">
-                        <div className="flex items-center gap-2">
-                            <TrendingUp className="w-4 h-4 text-blue-200" />
-                            <p className="text-xs font-semibold uppercase tracking-wider">
-                                Jami qilingan sof foyda
-                            </p>
-                        </div>
-                        <span className="text-sm font-bold">
-                            {stats.totalPayoff.toLocaleString('uz-UZ')} so'm
-                        </span>
-                    </div>
-                )}
             </div>
 
             {/* TO'LIQ INFORMATSIYA MODAL OYNASI */}
@@ -284,7 +180,7 @@ const HistoryForm = () => {
                                 </p>
                             </div>
                             <button
-                                onClick={() => setSelectedOrder(null)}
+                                onClick={() => setSelectedOrderId(null)}
                                 className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
                             >
                                 <X className="w-4 h-4" />
@@ -294,18 +190,21 @@ const HistoryForm = () => {
                         {/* Asosiy Pul / Sof Foyda */}
                         <div className="grid grid-cols-2 gap-3 bg-slate-50 p-3 rounded-md border border-slate-200">
                             <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Olingan Pul</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Buyurtma summasi</p>
                                 <p className="text-xs font-bold text-slate-800 mt-0.5">
-                                    {Number(selectedOrder.overallmoney || 0).toLocaleString('uz-UZ')} so'm
+                                    {getOrderTotal(selectedOrder).toLocaleString('uz-UZ')} so'm
                                 </p>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase">Sof Foyda</p>
-                                <p className={`text-xs font-bold mt-0.5 ${Number(selectedOrder.payoff || 0) < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                    {Number(selectedOrder.payoff || 0).toLocaleString('uz-UZ')} so'm
+                                <p className="text-[10px] font-bold text-slate-400 uppercase">Qabul qilingan</p>
+                                <p className="text-xs font-bold mt-0.5 text-emerald-600">
+                                    {getOrderPaid(selectedOrder).toLocaleString('uz-UZ')} so'm
                                 </p>
                             </div>
                         </div>
+                        <p className="text-xs text-slate-600">
+                            Qolgan to‘lov: {(getOrderTotal(selectedOrder) - getOrderPaid(selectedOrder)).toLocaleString('uz-UZ')} so‘m · Foyda: {getOrderFinancials(selectedOrder).profit.toLocaleString('uz-UZ')} so‘m
+                        </p>
 
                         {/* Materiallar Ro'yxati */}
                         {selectedOrder.order_materials && selectedOrder.order_materials.length > 0 && (
@@ -317,7 +216,10 @@ const HistoryForm = () => {
                                     {selectedOrder.order_materials.map((mat) => (
                                         <div key={mat.id} className="flex justify-between items-center text-xs text-slate-700 border-b border-slate-200/60 pb-1.5 last:border-none last:pb-0">
                                             <span className="font-medium">{mat.material_name}: <b className="text-slate-900">{mat.count} dona</b> (x {Number(mat.price).toLocaleString('uz-UZ')} so'm)</span>
-                                            <span className="font-bold text-slate-900">{Number(mat.totalprice).toLocaleString('uz-UZ')} so'm</span>
+                                            <span className="text-right">
+                                                <b className="block text-slate-900">{getMaterialLineFinancials(mat).totalCost.toLocaleString('uz-UZ')} so‘m tannarx</b>
+                                                <span className="text-emerald-700">+{getMaterialLineFinancials(mat).totalMarkup.toLocaleString('uz-UZ')} so‘m ustama</span>
+                                            </span>
                                         </div>
                                     ))}
                                 </div>
@@ -366,7 +268,7 @@ const HistoryForm = () => {
                         </div>
 
                         <button
-                            onClick={() => setSelectedOrder(null)}
+                            onClick={() => setSelectedOrderId(null)}
                             className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-md text-xs transition-all mt-2 cursor-pointer shadow-2xs"
                         >
                             Yopish

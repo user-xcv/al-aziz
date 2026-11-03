@@ -7,6 +7,8 @@ import {
   removePayment
 } from './paymentsThunk'
 import { fetchClients } from '../clients/clientsThunk'
+import { fetchHistoryOrders } from '../history/historyThunk'
+import { getOrderPaid, getOrderTotal } from '../enterData/orderAmounts'
 import {
   DollarSign,
   Search,
@@ -16,19 +18,22 @@ import {
   Trash2,
   X,
   TrendingUp,
-  TrendingDown
 } from 'lucide-react'
 
 const PaymentsForm = () => {
   const dispatch = useDispatch()
   const { payments, isLoading } = useSelector((state) => state.payments)
   const { clients } = useSelector((state) => state.clients)
+  const { historyList } = useSelector((state) => state.history)
+  const { sales = [] } = useSelector((state) => state.inventorySales || {})
 
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [editingPayment, setEditingPayment] = useState(null)
   const [formData, setFormData] = useState({
     client_id: '',
+    expense_id: '',
     amount: '',
     payment_type: 'cash',
     notes: ''
@@ -41,11 +46,14 @@ const PaymentsForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setIsSaving(true)
     try {
       const payload = {
         ...formData,
+        client_id: Number(formData.client_id),
+        expense_id: formData.expense_id ? Number(formData.expense_id) : null,
         amount: Number(formData.amount),
-        date: new Date().toISOString()
+        date: editingPayment?.date || new Date().toISOString()
       }
 
       if (editingPayment) {
@@ -53,11 +61,14 @@ const PaymentsForm = () => {
       } else {
         await dispatch(createPayment(payload)).unwrap()
       }
+      dispatch(fetchHistoryOrders())
       setIsModalOpen(false)
       setEditingPayment(null)
-      setFormData({ client_id: '', amount: '', payment_type: 'cash', notes: '' })
+      setFormData({ client_id: '', expense_id: '', amount: '', payment_type: 'cash', notes: '' })
     } catch (err) {
       alert('Xatolik: ' + err)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -65,6 +76,7 @@ const PaymentsForm = () => {
     setEditingPayment(payment)
     setFormData({
       client_id: payment.client_id,
+      expense_id: payment.expense_id || '',
       amount: payment.amount,
       payment_type: payment.payment_type || 'cash',
       notes: payment.notes || ''
@@ -76,6 +88,7 @@ const PaymentsForm = () => {
     if (window.confirm("Haqiqatan ham bu to'lovni o'chirmoqchimisiz?")) {
       try {
         await dispatch(removePayment(id)).unwrap()
+        dispatch(fetchHistoryOrders())
       } catch (err) {
         alert('Xatolik: ' + err)
       }
@@ -84,21 +97,51 @@ const PaymentsForm = () => {
 
   const handleOpenModal = () => {
     setEditingPayment(null)
-    setFormData({ client_id: '', amount: '', payment_type: 'cash', notes: '' })
+    setFormData({ client_id: '', expense_id: '', amount: '', payment_type: 'cash', notes: '' })
     setIsModalOpen(true)
   }
 
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setEditingPayment(null)
-    setFormData({ client_id: '', amount: '', payment_type: 'cash', notes: '' })
+    setFormData({ client_id: '', expense_id: '', amount: '', payment_type: 'cash', notes: '' })
   }
 
   const filteredPayments = payments.filter(p =>
     p.clients?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
-
-  const totalPayments = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0)
+  const inventorySalePayments = sales.flatMap((sale) =>
+    (sale.inventory_sale_payments || []).map((payment) => ({
+      ...payment,
+      client_name: sale.clients?.name || 'Mijozsiz',
+      material_name: sale.material_name,
+      sale_id: sale.id,
+    })),
+  )
+  const filteredInventorySalePayments = inventorySalePayments.filter((payment) =>
+    payment.client_name.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
+  const ordersWithPayments = new Set(
+    payments.filter((payment) => payment.expense_id !== null)
+      .map((payment) => String(payment.expense_id)),
+  )
+  const legacyOpeningPayments = historyList.filter((order) =>
+    Number(order.opening_paid || 0) > 0 && !ordersWithPayments.has(String(order.id)),
+  )
+  const totalPayments =
+    payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0) +
+    inventorySalePayments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0) +
+    legacyOpeningPayments.reduce((sum, order) => sum + Number(order.opening_paid || 0), 0)
+  const totalPaymentCount = payments.length + inventorySalePayments.length + legacyOpeningPayments.length
+  const clientOrders = historyList.filter(
+    (order) => String(order.client_id) === String(formData.client_id),
+  )
+  const selectedOrder = clientOrders.find(
+    (order) => String(order.id) === String(formData.expense_id),
+  )
+  const remainingForOrder = selectedOrder
+    ? getOrderTotal(selectedOrder) - getOrderPaid(selectedOrder, editingPayment?.id)
+    : null
 
   return (
     <div className="space-y-4 font-sans text-slate-700">
@@ -108,7 +151,7 @@ const PaymentsForm = () => {
           <DollarSign className="w-5 h-5 text-emerald-600" />
           <h2 className="text-sm font-bold text-slate-800">To'lovlar boshqaruvi</h2>
           <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
-            {payments.length} ta
+            {totalPaymentCount} ta
           </span>
         </div>
         <button
@@ -131,7 +174,7 @@ const PaymentsForm = () => {
         <div className="bg-white p-4 rounded-lg border border-slate-200">
           <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">To'lovlar soni</p>
           <p className="text-2xl font-bold text-slate-800 mt-1">
-            {payments.length} ta
+            {totalPaymentCount} ta
           </p>
         </div>
       </div>
@@ -154,7 +197,7 @@ const PaymentsForm = () => {
       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
         {isLoading ? (
           <p className="text-center text-xs text-slate-400 py-10">Yuklanmoqda...</p>
-        ) : filteredPayments.length === 0 ? (
+        ) : filteredPayments.length === 0 && filteredInventorySalePayments.length === 0 ? (
           <div className="h-36 flex flex-col items-center justify-center text-center text-slate-400">
             <DollarSign className="w-8 h-8 stroke-[1.25] text-slate-300 mb-1.5" />
             <p className="text-xs font-medium text-slate-600">To'lovlar topilmadi</p>
@@ -181,6 +224,9 @@ const PaymentsForm = () => {
                     {payment.notes && (
                       <p className="text-[10px] text-slate-400 mt-0.5 truncate">{payment.notes}</p>
                     )}
+                    {payment.expense_id && (
+                      <p className="text-[10px] text-blue-600 mt-0.5">Buyurtma #{payment.expense_id}</p>
+                    )}
                   </div>
                 </div>
 
@@ -190,7 +236,7 @@ const PaymentsForm = () => {
                       {Number(payment.amount).toLocaleString('uz-UZ')} so'm
                     </span>
                     <span className="text-[10px] text-slate-400 block">
-                      {payment.payment_type === 'cash' ? 'Naqd' : 'Karta'}
+                        {payment.payment_type === 'cash' ? 'Naqd' : payment.payment_type === 'card' ? 'Karta' : 'Bank o‘tkazmasi'}
                     </span>
                   </div>
 
@@ -210,6 +256,35 @@ const PaymentsForm = () => {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+              </div>
+            ))}
+            {filteredInventorySalePayments.map((payment) => (
+              <div
+                key={`material-sale-payment-${payment.id}`}
+                className="flex items-center justify-between gap-4 p-4 hover:bg-slate-50"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                    <TrendingUp className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-bold text-slate-800">{payment.client_name}</p>
+                    <p className="text-[11px] text-slate-500">
+                      {payment.date ? new Date(payment.date).toLocaleString('uz-UZ') : 'Vaqt yo‘q'}
+                    </p>
+                    <p className="text-[10px] text-blue-600">
+                      Material sotuvi #{payment.sale_id} · {payment.material_name}
+                    </p>
+                  </div>
+                </div>
+                <div className="shrink-0 text-right">
+                  <span className="block text-sm font-bold text-emerald-600">
+                    {Number(payment.amount).toLocaleString('uz-UZ')} so‘m
+                  </span>
+                  <span className="block text-[10px] text-slate-400">
+                    {payment.payment_type === 'card' ? 'Karta' : payment.payment_type === 'transfer' ? 'Bank o‘tkazmasi' : 'Naqd'}
+                  </span>
                 </div>
               </div>
             ))}
@@ -241,7 +316,7 @@ const PaymentsForm = () => {
                 <select
                   required
                   value={formData.client_id}
-                  onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
+                  onChange={(e) => setFormData({ ...formData, client_id: e.target.value, expense_id: '' })}
                   className="w-full bg-white border border-slate-200 focus:border-emerald-500 outline-none rounded-md px-3 py-2 text-xs"
                 >
                   <option value="">Mijoz tanlang</option>
@@ -255,12 +330,37 @@ const PaymentsForm = () => {
 
               <div>
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 block">
+                  Buyurtma (ixtiyoriy)
+                </label>
+                <select
+                  value={formData.expense_id}
+                  disabled={!formData.client_id}
+                  onChange={(e) => setFormData({ ...formData, expense_id: e.target.value })}
+                  className="w-full bg-white border border-slate-200 focus:border-emerald-500 outline-none rounded-md px-3 py-2 text-xs disabled:bg-slate-100"
+                >
+                  <option value="">Mijoz hisobiga yozish</option>
+                  {clientOrders.map((order) => (
+                    <option key={order.id} value={order.id}>
+                      #{order.id} · {new Date(order.date).toLocaleDateString('uz-UZ')} · {getOrderTotal(order).toLocaleString('uz-UZ')} so‘m
+                    </option>
+                  ))}
+                </select>
+                {selectedOrder && (
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Qolgan summa: {Math.max(remainingForOrder, 0).toLocaleString('uz-UZ')} so‘m
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 block">
                   Summa (so'm) *
                 </label>
                 <input
                   required
                   type="number"
-                  min="0"
+                  min="1"
+                  max={remainingForOrder === null ? undefined : Math.max(remainingForOrder, 0)}
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                   placeholder="0"
@@ -306,9 +406,10 @@ const PaymentsForm = () => {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-md text-xs"
+                  disabled={isSaving}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-medium py-2 rounded-md text-xs"
                 >
-                  {editingPayment ? 'Yangilash' : 'Saqlash'}
+                  {isSaving ? 'Saqlanmoqda...' : editingPayment ? 'Yangilash' : 'Saqlash'}
                 </button>
               </div>
             </form>

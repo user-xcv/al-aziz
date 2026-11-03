@@ -3,18 +3,20 @@ import { createOrderAPI } from './orderService';
 import { fetchHistoryOrders } from '../history/historyThunk';
 import { fetchHistoryAPI } from '../history/historyService';
 import { fetchWareHouseData } from '../wareHouse/wareHouseThunk';
+import { formatOrderSubmitError } from './orderSubmission'
+import { supabase } from '../../api/supabase'
 
 // Zakazni bazaga saqlash Thunk'i
 export const createOrder = createAsyncThunk(
   'orders/createOrder',
   async (formData, { dispatch, rejectWithValue }) => {
     try {
-      const response = await createOrderAPI(formData);
+      const response = await createOrderAPI(formData, supabase);
       dispatch(fetchHistoryOrders());
       dispatch(fetchWareHouseData());
       return response;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(formatOrderSubmitError(error));
     }
   }
 );
@@ -28,7 +30,7 @@ export const fetchOrders = createAsyncThunk(
       const data = await fetchHistoryAPI();
       return data;
     } catch (error) {
-      return rejectWithValue(error.message);
+      return rejectWithValue(formatOrderSubmitError(error));
     }
   }
 );

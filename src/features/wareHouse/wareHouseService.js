@@ -46,7 +46,8 @@ const toMaterialRow = (materialData) => ({
   name: materialData.name,
   stock_count: Number(materialData.stock_count),
   cost_price: Number(materialData.cost_price),
-  sell_price: Number(materialData.sell_price),
+  markup_price: Number(materialData.markup_price),
+  sell_price: Number(materialData.cost_price) + Number(materialData.markup_price),
 })
 
 export const addMaterialAPI = async (materialData) => {
@@ -112,6 +113,7 @@ export const decreaseStockAPI = async (id, qty) => {
 }
 
 export const matchesFormat = (material, format) => {
-  const stored = material.format_id == null ? '' : String(material.format_id)
+  const storedValue = material.format_id ?? material.format
+  const stored = storedValue == null ? '' : String(storedValue)
   return stored === String(format?.id) || stored === format?.name
 }
