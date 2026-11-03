@@ -20,13 +20,18 @@ import { fetchInventorySales } from './features/inventorySales/inventorySalesThu
 const App = () => {
     const dispatch = useDispatch()
     const [activeTab, setActiveTab] = useState('enterData')
-    const dataErrors = useSelector((state) => [
-        state.history?.error,
-        state.wareHouse?.error,
-        state.clients?.error,
-        state.payments?.error,
-        activeTab === 'materialSales' ? null : state.inventorySales?.error,
-    ].filter(Boolean))
+    const historyError = useSelector((state) => state.history?.error)
+    const warehouseError = useSelector((state) => state.wareHouse?.error)
+    const clientsError = useSelector((state) => state.clients?.error)
+    const paymentsError = useSelector((state) => state.payments?.error)
+    const inventorySalesError = useSelector((state) => state.inventorySales?.error)
+    const dataErrors = [
+        historyError,
+        warehouseError,
+        clientsError,
+        paymentsError,
+        activeTab === 'materialSales' ? null : inventorySalesError,
+    ].filter(Boolean)
     useEffect(() => {
         if (!isSupabaseConfigured) return
         dispatch(fetchHistoryOrders())
