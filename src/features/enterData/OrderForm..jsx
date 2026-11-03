@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { createOrder } from './orderThunk'
+import { matchesFormat } from '../wareHouse/wareHouseService'
+import { supabase } from '../../api/supabase'
 import {
   CircleDot,
   Cpu,
@@ -17,13 +19,15 @@ import {
   X,
 } from 'lucide-react'
 
-const emptyLine = { materialId: '', count: '' }
+const emptyLine = { categoryId: '', formatId: '', materialId: '', count: '', customPrice: '' }
 
 const OrderForm = () => {
   const dispatch = useDispatch()
   const { materials = [], categories = [] } = useSelector((state) => state.wareHouse || {})
+  const { clients = [] } = useSelector((state) => state.clients || {})
 
   const [form, setForm] = useState({
+    client_id: '',
     name: '',
     phone_number: '',
     bazis: '',
@@ -38,6 +42,11 @@ const OrderForm = () => {
   })
   const [lines, setLines] = useState([emptyLine])
   const [open, setOpen] = useState(false)
+  const [showNewClientModal, setShowNewClientModal] = useState(false)
+  const [newClientForm, setNewClientForm] = useState({
+    name: '',
+    phone_number: ''
+  })
 
   const materialOptions = useMemo(() => {
     return materials.map((item) => {
@@ -54,20 +63,68 @@ const OrderForm = () => {
     setForm({ ...form, [e.target.name]: e.target.value })
   }
 
+  const handleClientChange = (e) => {
+    const clientId = e.target.value
+    const selectedClient = clients.find(c => String(c.id) === String(clientId))
+    setForm({
+      ...form,
+      client_id: clientId,
+      name: selectedClient?.name || '',
+      phone_number: selectedClient?.phone_number || ''
+    })
+  }
+
+  const handleAddNewClient = async (e) => {
+    e.preventDefault()
+    if (!newClientForm.name.trim()) return
+
+    try {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([{
+          name: newClientForm.name.trim(),
+          phone_number: newClientForm.phone_number || null
+        }])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setForm({
+        ...form,
+        client_id: data.id,
+        name: data.name,
+        phone_number: data.phone_number || ''
+      })
+      setShowNewClientModal(false)
+      setNewClientForm({ name: '', phone_number: '' })
+    } catch (err) {
+      alert('Xatolik: ' + err.message)
+    }
+  }
+
   const selectedLines = lines
     .map((line) => {
-      const item = materials.find((m) => String(m.id) === String(line.materialId))
+      const category = categories.find((c) => String(c.id) === String(line.categoryId))
+      const format = category?.formats?.find((f) => String(f.id) === String(line.formatId))
+      const item = materials.find((m) =>
+        String(m.category_id) === String(line.categoryId) &&
+        matchesFormat(m, format)
+      )
       if (!item || !line.count) return null
       const count = Number(line.count)
-      const price = Number(item.sell_price || 0)
+      const basePrice = format?.default_price || item.sell_price || 0
+      const price = line.customPrice ? Number(line.customPrice) : Number(basePrice)
       return {
         material_id: item.id,
-        material_name: [item.categories?.name || '', item.name].filter(Boolean).join(' '),
+        material_name: [category?.name || '', item.name, format?.name].filter(Boolean).join(' · '),
         count,
         price,
         totalPrice: count * price,
         stock: Number(item.stock_count || 0),
         name: item.name,
+        format_id: line.formatId,
+        format_name: format?.name,
       }
     })
     .filter(Boolean)
@@ -107,6 +164,7 @@ const OrderForm = () => {
       .then(() => {
         alert('Zakaz muvaffaqiyatli saqlandi!')
         setForm({
+          client_id: '',
           name: '',
           phone_number: '',
           bazis: '',
@@ -128,6 +186,7 @@ const OrderForm = () => {
   }
 
   return (
+    <>
     <form
       onSubmit={handleSubmit}
       className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden text-slate-700 font-sans"
@@ -147,17 +206,30 @@ const OrderForm = () => {
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
               <User className="w-3.5 h-3.5 text-slate-400" />
-              Xaridor ismi
+              Mijoz
             </label>
-            <input
-              value={form.name}
-              name="name"
-              onChange={handleChange}
-              placeholder="Mijoz ismi va familiyasi"
-              type="text"
-              required
-              className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs"
-            />
+            <div className="flex gap-2">
+              <select
+                value={form.client_id}
+                onChange={handleClientChange}
+                className="flex-1 bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs"
+              >
+                <option value="">Mijoz tanlang</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name} {client.phone_number ? `(${client.phone_number})` : ''}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => setShowNewClientModal(true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-md text-xs font-medium"
+                title="Yangi mijoz qo'shish"
+              >
+                <PlusCircle className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
@@ -196,52 +268,118 @@ const OrderForm = () => {
             <div className="mb-3 p-3 bg-slate-50 rounded-md border border-slate-200 space-y-2">
               {materialOptions.length === 0 && (
                 <p className="text-[11px] text-slate-500">
-                  Omborda material yo‘q. Avval Ombor bo‘limidan list qo‘shing.
+                  Omborda material yo'q. Avval Ombor bo'limidan list qo'shing.
                 </p>
               )}
               {lines.map((line, index) => {
-                const item = materials.find((m) => String(m.id) === String(line.materialId))
-                const total = item ? Number(line.count || 0) * Number(item.sell_price || 0) : 0
+                const category = categories.find((c) => String(c.id) === String(line.categoryId))
+                const formats = category?.formats || []
+                const selectedFormat = formats.find((f) => String(f.id) === String(line.formatId))
+                const item = materials.find((m) =>
+                  String(m.category_id) === String(line.categoryId) &&
+                  matchesFormat(m, selectedFormat)
+                )
+                const basePrice = item?.sell_price || 0
+                const price = line.customPrice ? Number(line.customPrice) : Number(basePrice)
+                const total = Number(line.count || 0) * price
+
                 return (
-                  <div key={index} className="grid grid-cols-12 gap-2 items-center">
-                    <select
-                      value={line.materialId}
-                      onChange={(e) => {
-                        const next = [...lines]
-                        next[index] = { ...next[index], materialId: e.target.value }
-                        setLines(next)
-                      }}
-                      className="col-span-7 border border-slate-200 rounded p-1.5 text-xs bg-white"
-                    >
-                      <option value="">Material tanlang</option>
-                      {materialOptions.map((opt) => (
-                        <option key={opt.id} value={opt.id}>
-                          {opt.label} ({opt.stock_count} dona)
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min="1"
-                      value={line.count}
-                      onChange={(e) => {
-                        const next = [...lines]
-                        next[index] = { ...next[index], count: e.target.value }
-                        setLines(next)
-                      }}
-                      placeholder="Soni"
-                      className="col-span-3 border border-slate-200 rounded p-1.5 text-xs"
-                    />
-                    <div className="col-span-2 text-right text-[11px] font-bold text-blue-600">
-                      {total ? `${total.toLocaleString('uz-UZ')}` : ''}
+                  <div key={index} className="p-2 bg-white rounded border border-slate-200 space-y-2">
+                    <div className="grid grid-cols-12 gap-2 items-center">
+                      <select
+                        value={line.categoryId}
+                        onChange={(e) => {
+                          const next = [...lines]
+                          next[index] = { ...next[index], categoryId: e.target.value, formatId: '', materialId: '', customPrice: '' }
+                          setLines(next)
+                        }}
+                        className="col-span-7 border border-slate-200 rounded p-1.5 text-xs bg-white"
+                      >
+                        <option value="">Kategoriya tanlang</option>
+                        {categories.map((cat) => (
+                          <option key={cat.id} value={cat.id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="1"
+                        value={line.count}
+                        onChange={(e) => {
+                          const next = [...lines]
+                          next[index] = { ...next[index], count: e.target.value }
+                          setLines(next)
+                        }}
+                        placeholder="Soni"
+                        className="col-span-2 border border-slate-200 rounded p-1.5 text-xs"
+                      />
+                      <div className="col-span-3 text-right">
+                        <p className="text-[10px] text-slate-400">Jami</p>
+                        <p className="text-xs font-bold text-blue-600">
+                          {total ? `${total.toLocaleString('uz-UZ')}` : '0'}
+                        </p>
+                      </div>
                     </div>
+
+                    {category && formats.length > 0 && (
+                      <div className="grid grid-cols-12 gap-2 items-center">
+                        <select
+                          value={line.formatId}
+                          onChange={(e) => {
+                            const next = [...lines]
+                            next[index] = { ...next[index], formatId: e.target.value, materialId: '', customPrice: '' }
+                            setLines(next)
+                          }}
+                          className="col-span-7 border border-slate-200 rounded p-1.5 text-xs bg-white"
+                        >
+                          <option value="">Format tanlang (ixtiyoriy)</option>
+                          {formats.map((fmt) => (
+                            <option key={fmt.id} value={fmt.id}>
+                              {fmt.name}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min="0"
+                          value={line.customPrice}
+                          onChange={(e) => {
+                            const next = [...lines]
+                            next[index] = { ...next[index], customPrice: e.target.value }
+                            setLines(next)
+                          }}
+                          placeholder="Narx (ixtiyoriy)"
+                          className="col-span-2 border border-slate-200 rounded p-1.5 text-xs"
+                        />
+                        <div className="col-span-3 text-right">
+                          <p className="text-[10px] text-slate-400">Birligi</p>
+                          <p className="text-xs font-semibold text-slate-600">
+                            {price.toLocaleString('uz-UZ')}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {index > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = lines.filter((_, i) => i !== index)
+                          setLines(next)
+                        }}
+                        className="text-[10px] text-rose-600 hover:text-rose-700"
+                      >
+                        - O'chirish
+                      </button>
+                    )}
                   </div>
                 )
               })}
               <button
                 type="button"
                 onClick={() => setLines([...lines, emptyLine])}
-                className="text-[11px] font-semibold text-blue-600"
+                className="text-[11px] font-semibold text-blue-600 hover:text-blue-700"
               >
                 + Yana material
               </button>
@@ -298,6 +436,70 @@ const OrderForm = () => {
         </div>
       </div>
     </form>
+
+    {/* Yangi Mijoz Modal */}
+    {showNewClientModal && (
+      <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <User className="w-4 h-4 text-emerald-600" />
+              Yangi mijoz qo'shish
+            </h3>
+            <button
+              onClick={() => setShowNewClientModal(false)}
+              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <form onSubmit={handleAddNewClient} className="space-y-3">
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 block">
+                Mijoz ismi *
+              </label>
+              <input
+                required
+                value={newClientForm.name}
+                onChange={(e) => setNewClientForm({ ...newClientForm, name: e.target.value })}
+                placeholder="Ism va familiya"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 outline-none rounded-md px-3 py-2 text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1 block">
+                Telefon raqami
+              </label>
+              <input
+                value={newClientForm.phone_number}
+                onChange={(e) => setNewClientForm({ ...newClientForm, phone_number: e.target.value })}
+                placeholder="+998 90 123 45 67"
+                className="w-full bg-white border border-slate-200 focus:border-emerald-500 outline-none rounded-md px-3 py-2 text-xs"
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowNewClientModal(false)}
+                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-md text-xs"
+              >
+                Bekor qilish
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 rounded-md text-xs"
+              >
+                Qo'shish
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
+  </>
   )
 }
 

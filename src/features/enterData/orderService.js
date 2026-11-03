@@ -2,20 +2,25 @@ import { supabase } from "../../api/supabase";
 import { decreaseStockAPI } from "../wareHouse/wareHouseService";
 
 export const createOrderAPI = async (formData) => {
-  // 1. Mijozni qo'shamiz
-  const { data: clientData, error: clientError } = await supabase
-    .from('clients')
-    .insert([{ name: formData.name, phone_number: formData.phone_number || null }])
-    .select();
+  // 1. Mijozni tekshiramiz - agar client_id bo'lsa, shuni ishlatamiz
+  let clientId = formData.client_id;
 
-  if (clientError) throw new Error(clientError.message);
-  const newClientId = clientData[0].id;
+  if (!clientId) {
+    // Agar client_id yo'q bo'lsa, yangi mijoz yaratamiz (eski usul)
+    const { data: clientData, error: clientError } = await supabase
+      .from('clients')
+      .insert([{ name: formData.name, phone_number: formData.phone_number || null }])
+      .select();
+
+    if (clientError) throw new Error(clientError.message);
+    clientId = clientData[0].id;
+  }
 
   // 2. Xarajatlarni expenses jadvaliga yozamiz
   const { data: expenseData, error: expenseError } = await supabase
     .from('expenses')
     .insert([{
-      client_id: newClientId,
+      client_id: clientId,
       bazis: Number(formData.bazis) || 0,
       cutting: Number(formData.cutting) || 0,
       kromka: Number(formData.kromka) || 0,
@@ -39,7 +44,9 @@ export const createOrderAPI = async (formData) => {
       material_name: mat.material_name,
       count: mat.count,
       price: mat.price,
-      totalPrice: mat.totalPrice
+      totalprice: mat.totalPrice,
+      format_id: mat.format_id || null,
+      format_name: mat.format_name || null
     }));
 
     const { error: matError } = await supabase

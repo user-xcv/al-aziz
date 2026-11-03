@@ -101,7 +101,7 @@ const WareHouseForm = () => {
     try {
       const payload = {
         category_id: Number(liveCategory.id),
-        format_id: liveFormat.id,
+        format: String(liveFormat.id),
         name: materialForm.name.trim(),
         stock_count: Number(materialForm.stock_count),
         cost_price: Number(materialForm.cost_price),

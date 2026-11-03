@@ -42,7 +42,7 @@ export const addFormatAPI = async (categoryId, formatName) => {
 
 const toMaterialRow = (materialData) => ({
   category_id: Number(materialData.category_id),
-  format: materialData.format_id ? String(materialData.format_id) : null,
+  format: materialData.format || null,
   name: materialData.name,
   stock_count: Number(materialData.stock_count),
   cost_price: Number(materialData.cost_price),
@@ -61,7 +61,7 @@ export const addMaterialAPI = async (materialData) => {
 }
 
 export const updateMaterialAPI = async ({ id, updatedFields }) => {
-  const row = updatedFields.format_id !== undefined
+  const row = updatedFields.format !== undefined
     ? toMaterialRow(updatedFields)
     : updatedFields
 

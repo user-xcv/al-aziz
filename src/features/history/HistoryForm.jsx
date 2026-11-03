@@ -65,7 +65,7 @@ const HistoryForm = () => {
             if (item.order_materials && Array.isArray(item.order_materials)) {
                 item.order_materials.forEach(mat => {
                     acc.totalMaterialCount += Number(mat.count || 0)
-                    acc.totalMaterialCost += Number(mat.totalPrice || 0)
+                    acc.totalMaterialCost += Number(mat.totalprice || 0)
                 })
             }
             return acc
@@ -317,7 +317,7 @@ const HistoryForm = () => {
                                     {selectedOrder.order_materials.map((mat) => (
                                         <div key={mat.id} className="flex justify-between items-center text-xs text-slate-700 border-b border-slate-200/60 pb-1.5 last:border-none last:pb-0">
                                             <span className="font-medium">{mat.material_name}: <b className="text-slate-900">{mat.count} dona</b> (x {Number(mat.price).toLocaleString('uz-UZ')} so'm)</span>
-                                            <span className="font-bold text-slate-900">{Number(mat.totalPrice).toLocaleString('uz-UZ')} so'm</span>
+                                            <span className="font-bold text-slate-900">{Number(mat.totalprice).toLocaleString('uz-UZ')} so'm</span>
                                         </div>
                                     ))}
                                 </div>

@@ -8,7 +8,11 @@ import {
   Info,
   Grid,
   Search,
-  RotateCw
+  RotateCw,
+  Users,
+  DollarSign,
+  BarChart3,
+  FileText
 } from 'lucide-react'
 
 const MainLayout = ({ children, activeTab, setActiveTab }) => {
@@ -21,6 +25,14 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
         return 'Xaridlar tarixi'
       case 'wareHouse':
         return 'Ombor kuzatuvi'
+      case 'clients':
+        return 'Mijozlar bazasi'
+      case 'payments':
+        return 'To\'lovlar boshqaruvi'
+      case 'reports':
+        return 'Hisobotlar va analitika'
+      case 'invoices':
+        return 'Hisob-kitoblar'
       default:
         return 'Asmon ERP'
     }
@@ -30,6 +42,10 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
     { id: 'enterData', title: 'Yangi Hisob', icon: PlusCircle },
     { id: 'history', title: 'Xaridlar Tarixi', icon: History },
     { id: 'wareHouse', title: 'Ombor kuzatuvi', icon: Warehouse },
+    { id: 'clients', title: 'Mijozlar', icon: Users },
+    { id: 'payments', title: 'To\'lovlar', icon: DollarSign },
+    { id: 'invoices', title: 'Hisob-kitob', icon: FileText },
+    { id: 'reports', title: 'Hisobotlar', icon: BarChart3 },
   ]
 
   return (
