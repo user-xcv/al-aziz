@@ -1,66 +1,20 @@
-import { supabase } from "../../api/supabase";
-import { decreaseStockAPI } from "../wareHouse/wareHouseService";
+import { formatOrderSubmitError } from './orderSubmission.js'
 
-export const createOrderAPI = async (formData) => {
-  // 1. Mijozni tekshiramiz - agar client_id bo'lsa, shuni ishlatamiz
-  let clientId = formData.client_id;
+export const createOrderAPI = async (formData, client) => {
+  if (!client) throw new Error('Supabase mijoz sozlanmagan.')
 
-  if (!clientId) {
-    // Agar client_id yo'q bo'lsa, yangi mijoz yaratamiz (eski usul)
-    const { data: clientData, error: clientError } = await supabase
-      .from('clients')
-      .insert([{ name: formData.name, phone_number: formData.phone_number || null }])
-      .select();
+  const { data, error } = await client.rpc('create_order_with_materials', {
+    order_data: {
+      ...formData,
+      materials: formData.materials || [],
+    },
+  })
 
-    if (clientError) throw new Error(clientError.message);
-    clientId = clientData[0].id;
+  if (error) throw new Error(formatOrderSubmitError(error))
+
+  const id = Number(data)
+  if (!Number.isSafeInteger(id) || id <= 0) {
+    throw new Error('Supabase buyurtmani tasdiqlamadi: saqlangan buyurtma raqami qaytmadi.')
   }
-
-  // 2. Xarajatlarni expenses jadvaliga yozamiz
-  const { data: expenseData, error: expenseError } = await supabase
-    .from('expenses')
-    .insert([{
-      client_id: clientId,
-      bazis: Number(formData.bazis) || 0,
-      cutting: Number(formData.cutting) || 0,
-      kromka: Number(formData.kromka) || 0,
-      piercing: Number(formData.piercing) || 0,
-      rover: Number(formData.rover) || 0,
-      masterfee: Number(formData.masterfee) || 0,
-      spares: Number(formData.spares) || 0,
-      anotherexpenses: Number(formData.anotherexpenses) || 0,
-      overallmoney: Number(formData.overallmoney) || 0,
-      payoff: Number(formData.payoff) || 0
-    }])
-    .select();
-
-  if (expenseError) throw new Error(expenseError.message);
-  const newExpenseId = expenseData[0].id;
-
-  // 3. Materiallarni order_materials jadvaliga yozamiz
-  if (formData.materials && formData.materials.length > 0) {
-    const materialsToInsert = formData.materials.map(mat => ({
-      expense_id: newExpenseId,
-      material_name: mat.material_name,
-      count: mat.count,
-      price: mat.price,
-      totalprice: mat.totalPrice,
-      format_id: mat.format_id || null,
-      format_name: mat.format_name || null
-    }));
-
-    const { error: matError } = await supabase
-      .from('order_materials')
-      .insert(materialsToInsert);
-
-    if (matError) throw new Error(matError.message);
-
-    for (const mat of formData.materials) {
-      if (mat.material_id) {
-        await decreaseStockAPI(mat.material_id, mat.count)
-      }
-    }
-  }
-
-  return { success: true };
+  return { success: true, id }
 };

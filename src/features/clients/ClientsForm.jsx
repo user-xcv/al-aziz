@@ -16,15 +16,19 @@ import {
   Trash2,
   X,
   Clock,
-  CheckCircle
+  History
 } from 'lucide-react'
+import { getCustomerBusinessHistory } from '../inventorySales/inventorySaleCalculations'
 
 const ClientsForm = () => {
   const dispatch = useDispatch()
   const { clients, isLoading } = useSelector((state) => state.clients)
+  const { historyList = [] } = useSelector((state) => state.history || {})
+  const { sales = [] } = useSelector((state) => state.inventorySales || {})
 
   const [searchTerm, setSearchTerm] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [historyClient, setHistoryClient] = useState(null)
   const [editingClient, setEditingClient] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -141,7 +145,14 @@ const ClientsForm = () => {
           </div>
         ) : (
           <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
-            {clients.map((client) => (
+            {clients.map((client) => {
+              const clientOrderCount = historyList.filter(
+                (order) => String(order.client_id) === String(client.id),
+              ).length
+              const clientSaleCount = sales.filter(
+                (sale) => String(sale.client_id) === String(client.id),
+              ).length
+              return (
               <div
                 key={client.id}
                 className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between gap-4"
@@ -169,6 +180,15 @@ const ClientsForm = () => {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <button
+                    type="button"
+                    onClick={() => setHistoryClient(client)}
+                    className="flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1.5 text-[10px] font-semibold text-slate-600 hover:bg-blue-50 hover:text-blue-700"
+                    title="Mijoz tarixi"
+                  >
+                    <History className="h-3.5 w-3.5" />
+                    Tarix ({clientOrderCount + clientSaleCount})
+                  </button>
+                  <button
                     onClick={() => handleEdit(client)}
                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                     title="Tahrirlash"
@@ -184,7 +204,8 @@ const ClientsForm = () => {
                   </button>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
@@ -277,6 +298,72 @@ const ClientsForm = () => {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {historyClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <section role="dialog" aria-modal="true" aria-label={`${historyClient.name} tarixi`} className="max-h-[90vh] w-full max-w-2xl space-y-3 overflow-y-auto rounded-lg border border-slate-200 bg-white p-5 shadow-xl">
+            <header className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">{historyClient.name} — mijoz tarixi</h3>
+                <p className="text-[11px] text-slate-500">{historyClient.phone_number || ''}</p>
+              </div>
+              <button type="button" onClick={() => setHistoryClient(null)} className="rounded p-1 text-slate-500 hover:bg-slate-100" aria-label="Yopish">
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+            {(() => {
+              const events = getCustomerBusinessHistory(historyClient.id, historyList, sales)
+              if (!events.length) {
+                return <p className="py-8 text-center text-xs text-slate-500">Bu mijoz uchun tarix hali yo‘q.</p>
+              }
+              return (
+                <div className="space-y-2">
+                  {events.map((event) => {
+                    if (event.type === 'order') {
+                      const order = event.order
+                      return (
+                      <article key={`order-${event.id}`} className="space-y-1 rounded-md border border-slate-200 p-3 text-xs">
+                        <div className="flex justify-between gap-2">
+                          <b>Buyurtma #{event.id} · {event.date ? new Date(event.date).toLocaleDateString('uz-UZ') : ''}</b>
+                          <b>{event.revenue.toLocaleString('uz-UZ')} so‘m</b>
+                        </div>
+                        <p className="text-slate-600">
+                          Tushum xizmatlari: {[['Bazis', order.bazis], ['Kesish', order.cutting], ['Kromka', order.kromka], ['Teshish', order.piercing], ['Rover', order.rover]]
+                            .filter(([, amount]) => Number(amount || 0) > 0)
+                            .map(([name, amount]) => `${name} ${Number(amount).toLocaleString('uz-UZ')}`)
+                            .join(' · ') || 'Xizmat kiritilmagan'}
+                        </p>
+                        <p className="text-slate-600">
+                          Materiallar: {(order.order_materials || []).map((line) => `${line.material_name} × ${line.count}`).join(', ') || 'yo‘q'}
+                        </p>
+                        <p className="flex flex-wrap justify-between gap-2 text-slate-600">
+                          <span>To‘langan: {event.received.toLocaleString('uz-UZ')} so‘m</span>
+                          <span>Foyda: {event.profit.toLocaleString('uz-UZ')} so‘m</span>
+                        </p>
+                      </article>
+                      )
+                    }
+                    const sale = event.sale
+                    return (
+                      <article key={`sale-${event.id}`} className="space-y-1 rounded-md border border-blue-100 bg-blue-50/40 p-3 text-xs">
+                        <div className="flex justify-between gap-2">
+                          <b>Material sotuvi #{event.id} · {event.date ? new Date(event.date).toLocaleDateString('uz-UZ') : ''}</b>
+                          <b>{event.revenue.toLocaleString('uz-UZ')} so‘m</b>
+                        </div>
+                        <p>{sale.material_name} × {sale.quantity} dona · Tannarx {event.cost.toLocaleString('uz-UZ')} so‘m</p>
+                        <p className="flex flex-wrap justify-between gap-2 text-slate-600">
+                          <span>Olingan: {event.received.toLocaleString('uz-UZ')} · Qolgan: {event.balance.toLocaleString('uz-UZ')} so‘m</span>
+                          <span className="font-semibold text-emerald-700">Foyda: {event.profit.toLocaleString('uz-UZ')} so‘m</span>
+                        </p>
+                      </article>
+                    )
+                  })}
+                </div>
+              )
+            })()}
+          </section>
         </div>
       )}
     </div>

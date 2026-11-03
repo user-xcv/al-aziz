@@ -3,16 +3,12 @@ import {
   PlusCircle,
   History,
   Warehouse,
-  Menu,
-  Settings,
-  Info,
-  Grid,
-  Search,
   RotateCw,
   Users,
   DollarSign,
   BarChart3,
-  FileText
+  FileText,
+  CircleDollarSign,
 } from 'lucide-react'
 
 const MainLayout = ({ children, activeTab, setActiveTab }) => {
@@ -20,17 +16,19 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
   const getPageTitle = () => {
     switch (activeTab) {
       case 'enterData':
-        return 'Yangi Hisob va Xizmatlar'
+        return 'Yangi buyurtma'
       case 'history':
-        return 'Xaridlar tarixi'
+        return 'Buyurtmalar tarixi'
       case 'wareHouse':
-        return 'Ombor kuzatuvi'
+        return 'Ombor'
+      case 'materialSales':
+        return 'Material savdosi'
       case 'clients':
         return 'Mijozlar bazasi'
       case 'payments':
         return 'To\'lovlar boshqaruvi'
       case 'reports':
-        return 'Hisobotlar va analitika'
+        return 'Statistika'
       case 'invoices':
         return 'Hisob-kitoblar'
       default:
@@ -39,13 +37,14 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
   }
 
   const menuItems = [
-    { id: 'enterData', title: 'Yangi Hisob', icon: PlusCircle },
-    { id: 'history', title: 'Xaridlar Tarixi', icon: History },
-    { id: 'wareHouse', title: 'Ombor kuzatuvi', icon: Warehouse },
+    { id: 'enterData', title: 'Yangi buyurtma', icon: PlusCircle },
+    { id: 'history', title: 'Buyurtmalar tarixi', icon: History },
+    { id: 'wareHouse', title: 'Ombor', icon: Warehouse },
+    { id: 'materialSales', title: 'Material savdosi', icon: CircleDollarSign },
     { id: 'clients', title: 'Mijozlar', icon: Users },
     { id: 'payments', title: 'To\'lovlar', icon: DollarSign },
     { id: 'invoices', title: 'Hisob-kitob', icon: FileText },
-    { id: 'reports', title: 'Hisobotlar', icon: BarChart3 },
+    { id: 'reports', title: 'Statistika', icon: BarChart3 },
   ]
 
   return (
@@ -62,16 +61,6 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Qidiruv inputi */}
-          <div className="relative w-44 sm:w-60">
-            <Search className="w-3.5 h-3.5 text-blue-200 absolute left-2.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Qidiruv..."
-              className="w-full bg-blue-600/50 focus:bg-blue-600 text-white placeholder-blue-200 text-xs rounded-md pl-8 pr-3 py-1 outline-none transition-all border border-blue-400/40"
-            />
-          </div>
-
           <button
             title="Yangilash"
             onClick={() => window.location.reload()}
@@ -80,61 +69,42 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
             <RotateCw className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-2xs border border-blue-300/30">
-            A
-          </div>
         </div>
       </header>
 
       {/* 2. ISHCHI MAYDON (SIDEBAR + CONTENT) */}
       <div className="flex flex-1 overflow-hidden">
         {/* CHAP SIDEBAR */}
-        <aside className="w-12 bg-white border-r border-slate-200/80 flex flex-col items-center py-2 justify-between shrink-0 select-none z-10">
-          <div className="flex flex-col items-center gap-3 w-full">
-            <button className="w-8 h-8 flex items-center justify-center text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer">
-              <Menu className="w-4 h-4 stroke-[2]" />
-            </button>
-
-            <div className="w-6 h-[1px] bg-slate-100 my-0.5" />
-
+        <aside className="w-12 sm:w-48 bg-white border-r border-slate-200/80 flex flex-col py-3 px-1 sm:px-2 shrink-0 select-none z-10">
+          <div className="flex flex-col gap-3 w-full">
             {/* Navigation Buttons */}
-            <div className="flex flex-col items-center gap-2 w-full px-1">
+            <nav aria-label="Asosiy bo‘limlar" className="flex flex-col gap-1 w-full">
               {menuItems.map((item) => {
                 const Icon = item.icon
                 const isActive = activeTab === item.id
                 return (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => setActiveTab(item.id)}
                     title={item.title}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all cursor-pointer relative ${
+                    className={`w-full min-h-10 rounded-lg flex items-center justify-center sm:justify-start gap-0 sm:gap-3 px-1 sm:px-3 text-left text-sm transition-all cursor-pointer relative ${
                       isActive
-                        ? 'bg-blue-50 text-blue-600 font-bold shadow-2xs'
-                        : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
+                        ? 'bg-blue-50 text-blue-700 font-semibold'
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <span className="hidden sm:inline">{item.title}</span>
                     {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-4 bg-blue-600 rounded-r-full" />
+                      <span className="absolute left-0 top-2 bottom-2 w-1 bg-blue-600 rounded-r-full" />
                     )}
                   </button>
                 )
               })}
-            </div>
+            </nav>
           </div>
 
-          {/* Bottom Icons */}
-          <div className="flex flex-col items-center gap-1.5 w-full px-1 pt-2 border-t border-slate-100">
-            <button title="Sozlamalar" className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors">
-              <Settings className="w-3.5 h-3.5" />
-            </button>
-            <button title="Ma'lumot" className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors">
-              <Info className="w-3.5 h-3.5" />
-            </button>
-            <button title="Modullar" className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-50 hover:text-slate-700 transition-colors">
-              <Grid className="w-3.5 h-3.5" />
-            </button>
-          </div>
         </aside>
 
         {/* O'RTA CHILD KONTENT MAYDONI */}

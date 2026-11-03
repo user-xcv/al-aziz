@@ -7,7 +7,8 @@ export const fetchHistoryAPI = async () => {
     .select(`
       *,
       clients (name, phone_number),
-      order_materials (*)
+      order_materials (*),
+      payments (id, amount, date, payment_type)
     `)
     .order('id', { ascending: false });
 
@@ -19,10 +20,9 @@ export const fetchHistoryAPI = async () => {
 
 // Zakazni bazadan o'chirish API
 export const deleteHistoryAPI = async (id) => {
-  const { error } = await supabase
-    .from('expenses')
-    .delete()
-    .eq('id', id);
+  const { error } = await supabase.rpc('delete_order_with_restock', {
+    order_id: id,
+  })
 
   if (error) {
     throw new Error(error.message);

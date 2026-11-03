@@ -1,22 +1,20 @@
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchHistoryOrders } from '../history/historyThunk'
-import { fetchClients } from '../clients/clientsThunk'
 import {
   FileText,
   Printer,
-  Download,
   Search,
   Calendar,
   User,
-  CheckCircle,
   X
 } from 'lucide-react'
+import { getOrderPaid, getOrderTotal } from '../enterData/orderAmounts'
+import { getOrderFinancials } from '../enterData/orderCalculations'
 
 const InvoicesForm = () => {
   const dispatch = useDispatch()
   const { historyList } = useSelector((state) => state.history)
-  const { clients } = useSelector((state) => state.clients)
 
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedOrder, setSelectedOrder] = useState(null)
@@ -24,7 +22,6 @@ const InvoicesForm = () => {
 
   useEffect(() => {
     dispatch(fetchHistoryOrders())
-    dispatch(fetchClients())
   }, [dispatch])
 
   const filteredOrders = historyList.filter(item =>
@@ -39,27 +36,7 @@ const InvoicesForm = () => {
     setSelectedOrder(order)
     setIsPreviewOpen(true)
   }
-
-  const calculateTotal = (order) => {
-    const materialsTotal = (order.order_materials || []).reduce((sum, mat) =>
-      sum + Number(mat.totalprice || 0), 0
-    )
-    const expensesTotal =
-      Number(order.bazis || 0) +
-      Number(order.cutting || 0) +
-      Number(order.kromka || 0) +
-      Number(order.piercing || 0) +
-      Number(order.rover || 0) +
-      Number(order.masterfee || 0) +
-      Number(order.spares || 0) +
-      Number(order.anotherexpenses || 0)
-
-    return {
-      materials: materialsTotal,
-      expenses: expensesTotal,
-      total: materialsTotal + expensesTotal
-    }
-  }
+  const selectedOrderFinancials = selectedOrder ? getOrderFinancials(selectedOrder) : null
 
   return (
     <div className="space-y-4 font-sans text-slate-700">
@@ -98,7 +75,6 @@ const InvoicesForm = () => {
         ) : (
           <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
             {filteredOrders.map((order) => {
-              const totals = calculateTotal(order)
               return (
                 <div
                   key={order.id}
@@ -122,10 +98,10 @@ const InvoicesForm = () => {
                   <div className="flex items-center gap-4 shrink-0">
                     <div className="text-right">
                       <span className="text-sm font-bold text-slate-800 block">
-                        {totals.total.toLocaleString('uz-UZ')} so'm
+                        {getOrderTotal(order).toLocaleString('uz-UZ')} so'm
                       </span>
                       <span className="text-[10px] text-slate-400 block">
-                        {Number(order.overallmoney || 0).toLocaleString('uz-UZ')} olingan
+                        To‘langan: {getOrderPaid(order).toLocaleString('uz-UZ')} so‘m · Qarz: {(getOrderTotal(order) - getOrderPaid(order)).toLocaleString('uz-UZ')} so‘m
                       </span>
                     </div>
 
@@ -204,7 +180,7 @@ const InvoicesForm = () => {
                             <td className="p-2 text-slate-700">{mat.material_name}</td>
                             <td className="p-2 text-center text-slate-700">{mat.count}</td>
                             <td className="p-2 text-right text-slate-700">{Number(mat.price).toLocaleString('uz-UZ')}</td>
-                            <td className="p-2 text-right font-semibold text-slate-800">{Number(mat.totalPrice).toLocaleString('uz-UZ')}</td>
+                            <td className="p-2 text-right font-semibold text-slate-800">{Number(mat.totalprice || 0).toLocaleString('uz-UZ')}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -215,7 +191,7 @@ const InvoicesForm = () => {
 
               {/* Services */}
               <div>
-                <p className="text-xs font-bold text-slate-700 mb-2">Xizmatlar</p>
+                <p className="text-xs font-bold text-slate-700 mb-2">Mijozga sotiladigan xizmatlar</p>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {Number(selectedOrder.bazis) > 0 && (
                     <div className="flex justify-between p-2 bg-slate-50 rounded">
@@ -247,45 +223,66 @@ const InvoicesForm = () => {
                       <span className="font-semibold">{Number(selectedOrder.rover).toLocaleString('uz-UZ')}</span>
                     </div>
                   )}
-                  {Number(selectedOrder.masterfee) > 0 && (
-                    <div className="flex justify-between p-2 bg-slate-50 rounded">
-                      <span className="text-slate-600">Usta haqqi</span>
-                      <span className="font-semibold">{Number(selectedOrder.masterfee).toLocaleString('uz-UZ')}</span>
-                    </div>
-                  )}
-                  {Number(selectedOrder.spares) > 0 && (
-                    <div className="flex justify-between p-2 bg-slate-50 rounded">
-                      <span className="text-slate-600">Zapchast</span>
-                      <span className="font-semibold">{Number(selectedOrder.spares).toLocaleString('uz-UZ')}</span>
-                    </div>
-                  )}
-                  {Number(selectedOrder.anotherexpenses) > 0 && (
-                    <div className="flex justify-between p-2 bg-slate-50 rounded">
-                      <span className="text-slate-600">Boshqa</span>
-                      <span className="font-semibold">{Number(selectedOrder.anotherexpenses).toLocaleString('uz-UZ')}</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
               {/* Total */}
+              {(() => {
+                const paid = getOrderPaid(selectedOrder)
+                const remaining = getOrderTotal(selectedOrder) - paid
+                return (
+                  <div className="bg-emerald-50 p-4 rounded-md border border-emerald-200">
+                    <p className="text-xs font-bold text-slate-700 mb-2">To‘lovlar holati</p>
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs text-slate-600">Qabul qilingan to‘lovlar:</span>
+                      <span className="text-sm font-semibold text-emerald-700">
+                        {paid.toLocaleString('uz-UZ')} so‘m
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-xs text-slate-600">Qolgan qarz:</span>
+                      <span className={`text-sm font-semibold ${remaining > 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        {remaining.toLocaleString('uz-UZ')} so‘m
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
               <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm font-semibold text-slate-700">Jami summa:</span>
+                  <span className="text-sm font-semibold text-slate-700">Buyurtma summasi:</span>
                   <span className="text-lg font-bold text-blue-600">
-                    {calculateTotal(selectedOrder).total.toLocaleString('uz-UZ')} so'm
+                    {getOrderTotal(selectedOrder).toLocaleString('uz-UZ')} so'm
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-600">Olingan pul:</span>
+                  <span className="text-xs text-slate-600">Materiallar tannarxi:</span>
                   <span className="text-sm font-semibold text-emerald-600">
-                    {Number(selectedOrder.overallmoney || 0).toLocaleString('uz-UZ')} so'm
+                    {selectedOrderFinancials.materialCosts.toLocaleString('uz-UZ')} so'm
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-slate-600">Material ustamasi:</span>
+                  <span className="text-sm font-semibold text-emerald-700">
+                    {selectedOrderFinancials.materialMarkup.toLocaleString('uz-UZ')} so'm
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-slate-600">Ichki xarajatlar:</span>
+                  <span className="text-sm font-semibold text-rose-700">
+                    {selectedOrderFinancials.operatingCosts.toLocaleString('uz-UZ')} so‘m
+                  </span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-xs text-slate-600">Xizmatlardan tushum:</span>
+                  <span className="text-sm font-semibold text-blue-700">
+                    {selectedOrderFinancials.serviceRevenue.toLocaleString('uz-UZ')} so'm
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
-                  <span className="text-sm font-semibold text-slate-700">Qolgan (Foyda):</span>
-                  <span className={`text-lg font-bold ${Number(selectedOrder.payoff || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {Number(selectedOrder.payoff || 0).toLocaleString('uz-UZ')} so'm
+                  <span className="text-sm font-semibold text-slate-700">Jami foyda:</span>
+                  <span className={`text-lg font-bold ${selectedOrderFinancials.profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {selectedOrderFinancials.profit.toLocaleString('uz-UZ')} so'm
                   </span>
                 </div>
               </div>

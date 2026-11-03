@@ -26,7 +26,7 @@ const emptyMaterial = {
   name: '',
   stock_count: '',
   cost_price: '',
-  sell_price: '',
+  markup_price: '',
 }
 
 const WareHouseForm = () => {
@@ -101,11 +101,11 @@ const WareHouseForm = () => {
     try {
       const payload = {
         category_id: Number(liveCategory.id),
-        format: String(liveFormat.id),
+        format_id: Number(liveFormat.id),
         name: materialForm.name.trim(),
         stock_count: Number(materialForm.stock_count),
         cost_price: Number(materialForm.cost_price),
-        sell_price: Number(materialForm.sell_price),
+        markup_price: Number(materialForm.markup_price),
       }
       if (materialForm.id) {
         await updateMaterialAPI({ id: materialForm.id, updatedFields: payload })
@@ -125,8 +125,12 @@ const WareHouseForm = () => {
 
   const handleDeleteItem = async (id) => {
     if (!window.confirm("Materialni o'chirasizmi?")) return
-    await deleteMaterialAPI(id)
-    await reload()
+    try {
+      await deleteMaterialAPI(id)
+      await reload()
+    } catch (err) {
+      showMessage(err.message)
+    }
   }
 
   const formatMaterials = liveCategory && liveFormat
@@ -289,9 +293,10 @@ const WareHouseForm = () => {
                       <div>
                         <h4 className="font-bold">{item.name}</h4>
                         <p className="text-[10px] text-slate-400">
-                          Olish: {Number(item.cost_price).toLocaleString('uz-UZ')} so‘m · Sotish:{' '}
+                          Olish: {Number(item.cost_price).toLocaleString('uz-UZ')} so‘m · Ustama:{' '}
+                          {Number(item.markup_price ?? (Number(item.sell_price) - Number(item.cost_price))).toLocaleString('uz-UZ')} so‘m · Sotish:{' '}
                           <b className="text-blue-600">
-                            {Number(item.sell_price).toLocaleString('uz-UZ')} so‘m
+                            {(Number(item.cost_price) + Number(item.markup_price ?? (Number(item.sell_price) - Number(item.cost_price)))).toLocaleString('uz-UZ')} so‘m
                           </b>
                         </p>
                       </div>
@@ -306,7 +311,7 @@ const WareHouseForm = () => {
                             name: item.name,
                             stock_count: item.stock_count,
                             cost_price: item.cost_price,
-                            sell_price: item.sell_price,
+                            markup_price: item.markup_price ?? (Number(item.sell_price) - Number(item.cost_price)),
                           })
                         }
                         className="p-1 text-slate-400 hover:text-blue-600"
@@ -386,7 +391,7 @@ const WareHouseForm = () => {
                   className="w-full border border-slate-200 rounded p-2 outline-none focus:border-blue-500"
                 />
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="font-semibold text-slate-600 block mb-1">Soni</label>
                   <input
@@ -401,7 +406,7 @@ const WareHouseForm = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-600 block mb-1">Olish</label>
+                  <label className="font-semibold text-slate-600 block mb-1">Olish narxi</label>
                   <input
                     required
                     type="number"
@@ -414,19 +419,21 @@ const WareHouseForm = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-600 block mb-1">Sotish</label>
+                  <label className="font-semibold text-slate-600 block mb-1">Ustama</label>
                   <input
                     required
                     type="number"
-                    min="0"
-                    value={materialForm.sell_price}
+                    value={materialForm.markup_price}
                     onChange={(e) =>
-                      setMaterialForm({ ...materialForm, sell_price: e.target.value })
+                      setMaterialForm({ ...materialForm, markup_price: e.target.value })
                     }
                     className="w-full border border-slate-200 rounded p-2 outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
+              <p className="text-xs text-slate-500">
+                Sotish narxi: {(Number(materialForm.cost_price || 0) + Number(materialForm.markup_price || 0)).toLocaleString('uz-UZ')} so‘m
+              </p>
               <button
                 disabled={saving}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-md"
