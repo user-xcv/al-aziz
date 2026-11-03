@@ -4,6 +4,7 @@ import historyReducer from '../features/history/historySlice'
 import wareHouseReducer from '../features/wareHouse/wareHouseSlice'
 import clientsReducer from '../features/clients/clientsSlice'
 import paymentsReducer from '../features/payments/paymentsSlice'
+import inventorySalesReducer from '../features/inventorySales/inventorySalesSlice'
 
 export const store = configureStore({
   reducer: {
@@ -12,5 +13,6 @@ export const store = configureStore({
     wareHouse: wareHouseReducer,
     clients: clientsReducer,
     payments: paymentsReducer,
+    inventorySales: inventorySalesReducer,
   },
 })

@@ -3,7 +3,7 @@ import { supabase } from '../../api/supabase'
 export const fetchPaymentsAPI = async () => {
   const { data, error } = await supabase
     .from('payments')
-    .select('*, clients(name)')
+    .select('*, clients(name), expenses(id, overallmoney)')
     .order('date', { ascending: false })
 
   if (error) throw error
@@ -14,7 +14,7 @@ export const addPaymentAPI = async (paymentData) => {
   const { data, error } = await supabase
     .from('payments')
     .insert([paymentData])
-    .select('*, clients(name)')
+    .select('*, clients(name), expenses(id, overallmoney)')
     .single()
 
   if (error) throw error
@@ -26,7 +26,7 @@ export const updatePaymentAPI = async ({ id, updatedFields }) => {
     .from('payments')
     .update(updatedFields)
     .eq('id', id)
-    .select('*, clients(name)')
+    .select('*, clients(name), expenses(id, overallmoney)')
     .single()
 
   if (error) throw error

@@ -42,11 +42,12 @@ export const addFormatAPI = async (categoryId, formatName) => {
 
 const toMaterialRow = (materialData) => ({
   category_id: Number(materialData.category_id),
-  format: materialData.format || null,
+  format_id: materialData.format_id ? Number(materialData.format_id) : null,
   name: materialData.name,
   stock_count: Number(materialData.stock_count),
   cost_price: Number(materialData.cost_price),
-  sell_price: Number(materialData.sell_price),
+  markup_price: Number(materialData.markup_price),
+  sell_price: Number(materialData.cost_price) + Number(materialData.markup_price),
 })
 
 export const addMaterialAPI = async (materialData) => {
@@ -61,7 +62,7 @@ export const addMaterialAPI = async (materialData) => {
 }
 
 export const updateMaterialAPI = async ({ id, updatedFields }) => {
-  const row = updatedFields.format !== undefined
+  const row = updatedFields.format_id !== undefined
     ? toMaterialRow(updatedFields)
     : updatedFields
 
@@ -112,6 +113,7 @@ export const decreaseStockAPI = async (id, qty) => {
 }
 
 export const matchesFormat = (material, format) => {
-  const stored = material.format == null ? '' : String(material.format)
+  const storedValue = material.format_id ?? material.format
+  const stored = storedValue == null ? '' : String(storedValue)
   return stored === String(format.id) || stored === format.name
 }
