@@ -185,7 +185,7 @@ test('setup adds missing updated_at columns and trigger handles schemas without 
   )
 })
 
-test('updated_at recovery script is idempotent and changes only metadata columns and owned triggers', () => {
+test('updated_at recovery script is idempotent and restores the client columns used by the frontend', () => {
   for (const table of ['categories', 'formats', 'materials', 'clients']) {
     assert.match(
       updatedAtRepairSql,
@@ -193,6 +193,9 @@ test('updated_at recovery script is idempotent and changes only metadata columns
     )
     assert.match(updatedAtRepairSql, new RegExp(`DROP TRIGGER IF EXISTS update_${table}_updated_at`))
   }
+  assert.match(updatedAtRepairSql, /ALTER TABLE public\.clients[\s\S]*?ADD COLUMN IF NOT EXISTS phone_number/)
+  assert.match(updatedAtRepairSql, /ALTER TABLE public\.clients[\s\S]*?ADD COLUMN IF NOT EXISTS address/)
+  assert.match(updatedAtRepairSql, /ALTER TABLE public\.clients[\s\S]*?ADD COLUMN IF NOT EXISTS notes/)
   assert.match(updatedAtRepairSql, /CREATE OR REPLACE FUNCTION public\.update_updated_at_column\(\)/)
   assert.match(updatedAtRepairSql, /IF to_jsonb\(NEW\) \? 'updated_at' THEN/)
   assert.match(updatedAtRepairSql, /BEGIN;[\s\S]*COMMIT;\s*$/)
