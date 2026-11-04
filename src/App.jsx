@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { isSupabaseConfigured } from './api/supabase'
+import { isSupabaseConfigured, supabase } from './api/supabase'
 import { fetchHistoryOrders } from './features/history/historyThunk'
 import { fetchWareHouseData } from './features/wareHouse/wareHouseThunk'
 import { fetchClients } from './features/clients/clientsThunk'
@@ -14,11 +14,18 @@ import PaymentsForm from './features/payments/PaymentsForm'
 import ReportsForm from './features/reports/ReportsForm'
 import InventorySalesForm from './features/inventorySales/InventorySalesForm'
 import { fetchInventorySales } from './features/inventorySales/inventorySalesThunk'
-
+import SettingsForm from './features/settings/SettingsForm'
+import { DEFAULT_SETTINGS } from './features/settings/settingsModel'
+import { fetchSettingsAPI, saveSettingsAPI } from './features/settings/settingsService'
 
 const App = () => {
     const dispatch = useDispatch()
     const [activeTab, setActiveTab] = useState('enterData')
+    const [savedSettings, setSavedSettings] = useState(DEFAULT_SETTINGS)
+    const [displaySettings, setDisplaySettings] = useState(DEFAULT_SETTINGS)
+    const [settingsReady, setSettingsReady] = useState(false)
+    const [settingsError, setSettingsError] = useState('')
+    const [sidebarSaving, setSidebarSaving] = useState(false)
     const historyError = useSelector((state) => state.history?.error)
     const warehouseError = useSelector((state) => state.wareHouse?.error)
     const clientsError = useSelector((state) => state.clients?.error)
@@ -39,6 +46,81 @@ const App = () => {
         dispatch(fetchPayments())
         dispatch(fetchInventorySales())
     }, [dispatch])
+
+    const loadSettings = useCallback(async () => {
+        setSettingsError('')
+        setSettingsReady(false)
+        try {
+            const settings = await fetchSettingsAPI(supabase)
+            setSavedSettings(settings)
+            setDisplaySettings(settings)
+            setSettingsReady(true)
+        } catch (error) {
+            setSettingsError(`Sozlamalarni yuklab bo‘lmadi: ${error.message}`)
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!isSupabaseConfigured) return undefined
+
+        let isCurrent = true
+        fetchSettingsAPI(supabase)
+            .then((settings) => {
+                if (!isCurrent) return
+                setSavedSettings(settings)
+                setDisplaySettings(settings)
+                setSettingsReady(true)
+            })
+            .catch((error) => {
+                if (isCurrent) setSettingsError(`Sozlamalarni yuklab bo‘lmadi: ${error.message}`)
+            })
+
+        return () => {
+            isCurrent = false
+        }
+    }, [])
+
+    const previewSettings = (settings) => setDisplaySettings(settings)
+
+    const persistSettings = async (settings) => {
+        const previousSettings = savedSettings
+        setDisplaySettings(settings)
+        setSettingsError('')
+        try {
+            const saved = await saveSettingsAPI(settings, supabase)
+            setSavedSettings(saved)
+            setDisplaySettings(saved)
+            setSettingsReady(true)
+            return saved
+        } catch (error) {
+            setDisplaySettings(previousSettings)
+            setSettingsError(`Sozlamalarni saqlab bo‘lmadi: ${error.message}`)
+            throw error
+        }
+    }
+
+    const toggleSidebar = () => {
+        if (!settingsReady || sidebarSaving) return
+        const previousSettings = displaySettings
+        const nextSidebarState = !displaySettings.sidebarCollapsed
+        const settingsToSave = { ...savedSettings, sidebarCollapsed: nextSidebarState }
+        setSidebarSaving(true)
+        setDisplaySettings({ ...displaySettings, sidebarCollapsed: nextSidebarState })
+        setSettingsError('')
+        saveSettingsAPI(settingsToSave, supabase)
+            .then((saved) => {
+                setSavedSettings(saved)
+                setDisplaySettings((current) => ({
+                    ...current,
+                    sidebarCollapsed: saved.sidebarCollapsed,
+                }))
+            })
+            .catch((error) => {
+                setDisplaySettings(previousSettings)
+                setSettingsError(`Yon menyu sozlamasini saqlab bo‘lmadi: ${error.message}`)
+            })
+            .finally(() => setSidebarSaving(false))
+    }
 
     const refreshData = () => {
         dispatch(fetchHistoryOrders())
@@ -62,7 +144,31 @@ const App = () => {
         )
     }
     return (
-        <MainLayout activeTab={activeTab} setActiveTab={setActiveTab}>
+        <MainLayout
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            settings={displaySettings}
+            settingsReady={settingsReady}
+            sidebarSaving={sidebarSaving}
+            onToggleSidebar={toggleSidebar}
+        >
+            {settingsError && (
+                <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                    <span>{settingsError}</span>
+                    {!settingsReady && (
+                        <button
+                            type="button"
+                            onClick={loadSettings}
+                            className="shrink-0 rounded bg-white px-2.5 py-1 font-semibold text-amber-900 hover:bg-amber-100"
+                        >
+                            Qayta urinish
+                        </button>
+                    )}
+                </div>
+            )}
+            {!settingsReady && !settingsError && (
+                <p role="status" className="mb-3 text-xs text-slate-500">Ko‘rinish sozlamalari yuklanmoqda…</p>
+            )}
             {dataErrors.length > 0 && (
                 <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
                     <span>Supabase xatosi: {dataErrors[0]}</span>
@@ -122,6 +228,15 @@ const App = () => {
                 <div className="max-w-5xl mx-auto">
                     <ReportsForm />
                 </div>
+            )}
+
+            {activeTab === 'settings' && (
+                <SettingsForm
+                    settings={savedSettings}
+                    settingsReady={settingsReady}
+                    onPreview={previewSettings}
+                    onSave={persistSettings}
+                />
             )}
 
         </MainLayout>

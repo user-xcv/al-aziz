@@ -1,4 +1,3 @@
-import React, { useState } from 'react'
 import {
   PlusCircle,
   History,
@@ -7,14 +6,22 @@ import {
   Users,
   DollarSign,
   BarChart3,
-  FileText,
   CircleDollarSign,
   Menu,
   X,
+  Settings,
 } from 'lucide-react'
+import { getThemeVariables } from '../features/settings/settingsModel'
 
-const MainLayout = ({ children, activeTab, setActiveTab }) => {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+const MainLayout = ({
+  children,
+  activeTab,
+  setActiveTab,
+  settings,
+  settingsReady,
+  sidebarSaving,
+  onToggleSidebar,
+}) => {
   // Sarlavhani tanlangan bo'limga qarab o'zgartirish
   const getPageTitle = () => {
     switch (activeTab) {
@@ -32,6 +39,8 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
         return 'To\'lovlar boshqaruvi'
       case 'reports':
         return 'Statistika'
+      case 'settings':
+        return 'Sozlamalar'
       case 'invoices':
         return 'Hisob-kitoblar'
       default:
@@ -47,18 +56,29 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
     { id: 'clients', title: 'Mijozlar', icon: Users },
     { id: 'payments', title: 'To\'lovlar', icon: DollarSign },
     { id: 'reports', title: 'Statistika', icon: BarChart3 },
+    { id: 'settings', title: 'Sozlamalar', icon: Settings },
   ]
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden bg-slate-50/80 font-sans text-slate-800">
+    <div
+      className={`crm-app-shell ${settings.density === 'compact' ? 'crm-density-compact' : ''} flex h-screen w-screen flex-col overflow-hidden bg-slate-50 font-sans text-slate-800`}
+      style={getThemeVariables(settings)}
+      data-theme={settings.theme}
+      data-density={settings.density}
+    >
       {/* 1. YUQORI NAVBAR */}
-      <header className="h-12 bg-blue-500 text-white flex items-center justify-between px-4 shrink-0 shadow-2xs z-20">
+      <header className="crm-header h-12 bg-blue-500 text-white flex items-center justify-between px-4 shrink-0 shadow-2xs z-20">
         <div className="flex items-center gap-6">
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 hover:bg-blue-600 rounded-md text-blue-100 transition-colors cursor-pointer"
+            type="button"
+            onClick={onToggleSidebar}
+            disabled={!settingsReady || sidebarSaving}
+            aria-label={settings.sidebarCollapsed ? 'Yon menyuni kengaytirish' : 'Yon menyuni yig‘ish'}
+            aria-expanded={!settings.sidebarCollapsed}
+            aria-busy={sidebarSaving}
+            className="p-1.5 hover:bg-blue-600 rounded-md text-blue-100 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {settings.sidebarCollapsed ? <Menu className="w-4 h-4" /> : <X className="w-4 h-4" />}
           </button>
           <span className="font-bold text-base tracking-wide flex items-center gap-2">
             AL-AZIZ
@@ -83,7 +103,7 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
       {/* 2. ISHCHI MAYDON (SIDEBAR + CONTENT) */}
       <div className="flex flex-1 overflow-hidden">
         {/* CHAP SIDEBAR */}
-        <aside className={`${sidebarOpen ? 'w-12 sm:w-48' : 'w-0'} bg-white border-r border-slate-200/80 flex flex-col py-3 px-1 sm:px-2 shrink-0 select-none z-10 transition-all duration-300 overflow-hidden`}>
+        <aside className={`${settings.sidebarCollapsed ? 'w-12' : 'w-12 sm:w-48'} bg-white border-r border-slate-200/80 flex flex-col py-3 px-1 sm:px-2 shrink-0 select-none z-10 transition-all duration-300 overflow-hidden`}>
           <div className="flex flex-col gap-3 w-full">
             {/* Navigation Buttons */}
             <nav aria-label="Asosiy bo‘limlar" className="flex flex-col gap-1 w-full">
@@ -96,6 +116,7 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
                     type="button"
                     onClick={() => setActiveTab(item.id)}
                     title={item.title}
+                    aria-current={isActive ? 'page' : undefined}
                     className={`w-full min-h-10 rounded-lg flex items-center justify-center sm:justify-start gap-0 sm:gap-3 px-1 sm:px-3 text-left text-sm transition-all cursor-pointer relative ${
                       isActive
                         ? 'bg-blue-50 text-blue-700 font-semibold'

@@ -5,10 +5,10 @@ CRM for managing customers, orders, inventory, customer payments, invoices, and 
 ## Supabase setup
 
 1. Create a Supabase project and open its **SQL Editor**.
-2. For a new Supabase project, run [`supabase-setup.sql`](./supabase-setup.sql). It creates the CRM tables, no-login policies, and atomic order/material-sale/stock functions in one transaction.
-   - For an already configured CRM, run [`supabase-material-sales.sql`](./supabase-material-sales.sql) to add direct material sales only. It is idempotent and does not rewrite existing CRM records. Prefer this incremental file over rerunning the full setup just to add standalone sales: the full setup also contains earlier accounting backfills described below.
-   - To repair only the older `updated_at` trigger error, run [`supabase-fix-updated-at-trigger.sql`](./supabase-fix-updated-at-trigger.sql). It is safe to rerun and does not change order, payment, or inventory data.
-3. Copy `.env.example` to `.env` and set the project URL and publishable/anon key from **Project Settings → API**:
+2. For a new Supabase project, run [`supabase-setup.sql`](./supabase-setup.sql). It creates the CRM tables, no-login policies, and atomic order/material-sale/stock functions in one transaction. For an already configured CRM, run [`supabase-material-sales.sql`](./supabase-material-sales.sql) if direct material sales are not yet installed; it is idempotent and does not rewrite existing CRM records. Prefer this incremental file over rerunning the full setup just to add standalone sales: the full setup also contains earlier accounting backfills described below.
+3. Run [`supabase-app-settings.sql`](./supabase-app-settings.sql) in both new and existing projects to enable shared appearance settings. This additive migration is safe to rerun and does not alter CRM business records.
+4. To repair only the older `updated_at` trigger error, run [`supabase-fix-updated-at-trigger.sql`](./supabase-fix-updated-at-trigger.sql). It is safe to rerun and does not change order, payment, or inventory data.
+5. Copy `.env.example` to `.env` and set the project URL and publishable/anon key from **Project Settings → API**:
 
    ```dotenv
    VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -16,7 +16,7 @@ CRM for managing customers, orders, inventory, customer payments, invoices, and 
    ```
 
    Never put a `service_role` or secret key in a `VITE_` variable.
-4. Install dependencies and start the app:
+6. Install dependencies and start the app:
 
    ```sh
    npm install
@@ -26,6 +26,8 @@ CRM for managing customers, orders, inventory, customer payments, invoices, and 
    The CRM opens directly without a login.
 
 > **Access warning:** Login is disabled for now. Anyone who can reach the app and its public Supabase URL/key can read, insert, update, and delete records in the CRM tables. RLS is enabled but intentionally permits the `anon` role on these specific tables for this no-login setup. Use only in a trusted, private environment; restore authentication and authenticated-only policies before public deployment or use with sensitive customer data.
+
+Appearance preferences (theme colors, layout density, and the initial sidebar state) are shared by the whole CRM installation because there is no user login. The settings table is publicly readable through the app's anon key; updates go through a validating RPC, and direct table writes are denied. Anyone with access to the app can still change this shared preference, so it is not private per-user data.
 
 ## Accounting behavior
 
