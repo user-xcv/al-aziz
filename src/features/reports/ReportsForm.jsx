@@ -57,10 +57,28 @@ const ReportsForm = () => {
   const { sales = [] } = useSelector((state) => state.inventorySales || {})
 
   const [dateFilter, setDateFilter] = useState('month')
+  const [selectedDate, setSelectedDate] = useState(null)
 
-  const filteredHistory = historyList.filter((item) => isWithinReportPeriod(item.date, dateFilter))
-  const filteredSales = sales.filter((item) => isWithinReportPeriod(item.date, dateFilter))
-  const filteredPayments = payments.filter((payment) => isWithinReportPeriod(payment.date, dateFilter))
+  const filteredHistory = selectedDate
+    ? historyList.filter((item) => {
+        const itemDate = new Date(item.date).toDateString()
+        return itemDate === selectedDate
+      })
+    : historyList.filter((item) => isWithinReportPeriod(item.date, dateFilter))
+
+  const filteredSales = selectedDate
+    ? sales.filter((item) => {
+        const itemDate = new Date(item.date).toDateString()
+        return itemDate === selectedDate
+      })
+    : sales.filter((item) => isWithinReportPeriod(item.date, dateFilter))
+
+  const filteredPayments = selectedDate
+    ? payments.filter((payment) => {
+        const itemDate = new Date(payment.date).toDateString()
+        return itemDate === selectedDate
+      })
+    : payments.filter((payment) => isWithinReportPeriod(payment.date, dateFilter))
 
   const financialSummary = aggregateCrmFinancials(filteredHistory, filteredSales)
   const stats = {
@@ -178,9 +196,29 @@ const ReportsForm = () => {
           <h2 className="text-sm font-bold text-slate-800">Hisobotlar va Analitika</h2>
         </div>
         <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={selectedDate || ''}
+            onChange={(e) => {
+              setSelectedDate(e.target.value ? new Date(e.target.value).toDateString() : null)
+              setDateFilter('all')
+            }}
+            className="bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs"
+          />
+          {selectedDate && (
+            <button
+              onClick={() => setSelectedDate(null)}
+              className="text-xs text-blue-600 hover:text-blue-700"
+            >
+              Tozalash
+            </button>
+          )}
           <select
             value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            onChange={(e) => {
+              setDateFilter(e.target.value)
+              setSelectedDate(null)
+            }}
             className="bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs"
           >
             <option value="all">Barcha davr</option>
@@ -193,6 +231,17 @@ const ReportsForm = () => {
           </button>
         </div>
       </div>
+      {selectedDate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+          <p className="text-xs font-bold text-blue-800">
+            📅 {new Date(selectedDate).toLocaleDateString('uz-UZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </p>
+          <p className="text-[10px] text-blue-600 mt-1">
+            O'sha kuni qilingan barcha ishlar ko'rsatilmoqda
+          </p>
+        </div>
+      )}
+
       {/* Main Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
         <div className="bg-white p-4 rounded-lg border border-slate-200">
