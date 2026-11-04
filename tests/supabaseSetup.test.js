@@ -15,6 +15,10 @@ const inventorySalesMigrationSql = readFileSync(
   new URL('../supabase-material-sales.sql', import.meta.url),
   'utf8',
 )
+const appSettingsMigrationSql = readFileSync(
+  new URL('../supabase-app-settings.sql', import.meta.url),
+  'utf8',
+)
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const layoutSource = readFileSync(
   new URL('../src/layout/mainLayout.jsx', import.meta.url),
@@ -91,6 +95,28 @@ test('standalone sales migration is transactional, repeatable and avoids histori
     inventorySalesMigrationSql,
     /\b(UPDATE|DELETE|TRUNCATE)\s+(public\.)?(clients|categories|formats|expenses|order_materials|payments)\b/i,
   )
+})
+
+test('shared settings migration is repeatable, read-only to clients, and validates RPC writes', () => {
+  const luminanceFunction = appSettingsMigrationSql.indexOf('CREATE OR REPLACE FUNCTION public.crm_color_luminance')
+  const contrastFunction = appSettingsMigrationSql.indexOf('CREATE OR REPLACE FUNCTION public.crm_color_contrast_ratio')
+  const saveFunction = appSettingsMigrationSql.indexOf('CREATE OR REPLACE FUNCTION public.save_crm_settings')
+
+  assert.match(appSettingsMigrationSql, /BEGIN;[\s\S]*COMMIT;\s*$/)
+  assert.ok(luminanceFunction >= 0 && luminanceFunction < contrastFunction)
+  assert.ok(contrastFunction < saveFunction)
+  assert.match(appSettingsMigrationSql, /CREATE TABLE IF NOT EXISTS public\.crm_settings/)
+  assert.match(appSettingsMigrationSql, /ON CONFLICT \(id\) DO NOTHING/)
+  assert.match(appSettingsMigrationSql, /ALTER TABLE public\.crm_settings ENABLE ROW LEVEL SECURITY/)
+  assert.match(appSettingsMigrationSql, /FOR SELECT\s+TO anon, authenticated/)
+  assert.match(appSettingsMigrationSql, /REVOKE ALL ON public\.crm_settings FROM PUBLIC, anon, authenticated/)
+  assert.match(appSettingsMigrationSql, /GRANT SELECT ON public\.crm_settings TO anon, authenticated/)
+  assert.match(appSettingsMigrationSql, /SECURITY DEFINER\s+SET search_path = ''/)
+  assert.match(appSettingsMigrationSql, /jsonb_object_keys\(settings_data\)/)
+  assert.ok(appSettingsMigrationSql.includes("color_value !~ '^#[0-9A-Fa-f]{6}$'"))
+  assert.match(appSettingsMigrationSql, /get_byte\(decode\(substr\(hex_color, 2, 2\), 'hex'\), 0\)/)
+  assert.match(appSettingsMigrationSql, /GRANT EXECUTE ON FUNCTION public\.save_crm_settings\(JSONB\) TO anon, authenticated/)
+  assert.doesNotMatch(appSettingsMigrationSql, /\b(UPDATE|DELETE|TRUNCATE)\s+(public\.)?(clients|categories|formats|materials|expenses|payments)\b/i)
 })
 
 test('material-sale receipts and client history are wired into their existing screens', () => {
@@ -194,6 +220,15 @@ test('CRM opens without authentication and loads its data immediately', () => {
   assert.doesNotMatch(layoutSource, /onSignOut|Chiqish/)
 })
 
+test('settings page is linked to global layout and shared Supabase preferences', () => {
+  assert.match(appSource, /fetchSettingsAPI\(supabase\)/)
+  assert.match(appSource, /saveSettingsAPI\(settings, supabase\)/)
+  assert.match(appSource, /activeTab === 'settings'/)
+  assert.match(layoutSource, /id: 'settings', title: 'Sozlamalar'/)
+  assert.match(layoutSource, /style=\{getThemeVariables\(settings\)\}/)
+  assert.match(layoutSource, /settings\.density/)
+})
+
 test('new order shows sales history beside the form while reports remain separate', () => {
   const newOrderBlock = appSource.match(
     /activeTab === 'enterData' && \(([\s\S]*?)\n            \)\}/,
@@ -205,7 +240,7 @@ test('new order shows sales history beside the form while reports remain separat
     /activeTab === 'reports' && \(([\s\S]*?)\n            \)\}/,
   )?.[1]
 
-  assert.match(newOrderBlock, /<HistoryForm \/>[\s\S]*<OrderForm \/>/)
+  assert.match(newOrderBlock, /<OrderForm \/>[\s\S]*<HistoryForm \/>/)
   assert.doesNotMatch(newOrderBlock, /<ReportsForm \/>/)
   assert.match(historyBlock, /<HistoryForm \/>/)
   assert.match(reportsBlock, /<ReportsForm \/>/)
