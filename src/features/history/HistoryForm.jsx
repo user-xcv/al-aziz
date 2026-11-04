@@ -62,8 +62,8 @@ const HistoryForm = () => {
     }
 
     return (
-        <div className="space-y-4 font-sans text-slate-700">
-            <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden flex flex-col">
+        <div className="space-y-4 font-sans text-slate-700 h-full flex flex-col">
+            <div className="bg-white rounded-lg border border-slate-200 shadow-xs overflow-hidden flex flex-col flex-1">
                 <div className="p-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white">
                     <div className="flex items-center gap-2">
                         <Receipt className="w-4 h-4 text-slate-600" />

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   PlusCircle,
   History,
@@ -9,9 +9,12 @@ import {
   BarChart3,
   FileText,
   CircleDollarSign,
+  Menu,
+  X,
 } from 'lucide-react'
 
 const MainLayout = ({ children, activeTab, setActiveTab }) => {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   // Sarlavhani tanlangan bo'limga qarab o'zgartirish
   const getPageTitle = () => {
     switch (activeTab) {
@@ -43,7 +46,6 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
     { id: 'materialSales', title: 'Material savdosi', icon: CircleDollarSign },
     { id: 'clients', title: 'Mijozlar', icon: Users },
     { id: 'payments', title: 'To\'lovlar', icon: DollarSign },
-    { id: 'invoices', title: 'Hisob-kitob', icon: FileText },
     { id: 'reports', title: 'Statistika', icon: BarChart3 },
   ]
 
@@ -52,8 +54,14 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
       {/* 1. YUQORI NAVBAR */}
       <header className="h-12 bg-blue-500 text-white flex items-center justify-between px-4 shrink-0 shadow-2xs z-20">
         <div className="flex items-center gap-6">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-1.5 hover:bg-blue-600 rounded-md text-blue-100 transition-colors cursor-pointer"
+          >
+            {sidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+          </button>
           <span className="font-bold text-base tracking-wide flex items-center gap-2">
-            Asmon
+            AL-AZIZ
           </span>
           <h1 className="text-xs font-medium text-blue-100 border-l border-blue-400/60 pl-4 hidden sm:block">
             {getPageTitle()}
@@ -75,7 +83,7 @@ const MainLayout = ({ children, activeTab, setActiveTab }) => {
       {/* 2. ISHCHI MAYDON (SIDEBAR + CONTENT) */}
       <div className="flex flex-1 overflow-hidden">
         {/* CHAP SIDEBAR */}
-        <aside className="w-12 sm:w-48 bg-white border-r border-slate-200/80 flex flex-col py-3 px-1 sm:px-2 shrink-0 select-none z-10">
+        <aside className={`${sidebarOpen ? 'w-12 sm:w-48' : 'w-0'} bg-white border-r border-slate-200/80 flex flex-col py-3 px-1 sm:px-2 shrink-0 select-none z-10 transition-all duration-300 overflow-hidden`}>
           <div className="flex flex-col gap-3 w-full">
             {/* Navigation Buttons */}
             <nav aria-label="Asosiy bo‘limlar" className="flex flex-col gap-1 w-full">

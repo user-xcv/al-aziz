@@ -12,7 +12,6 @@ import WareHouseForm from './features/wareHouse/WareHouseForm'
 import ClientsForm from './features/clients/ClientsForm'
 import PaymentsForm from './features/payments/PaymentsForm'
 import ReportsForm from './features/reports/ReportsForm'
-import InvoicesForm from './features/invoices/InvoicesForm'
 import InventorySalesForm from './features/inventorySales/InventorySalesForm'
 import { fetchInventorySales } from './features/inventorySales/inventorySalesThunk'
 
@@ -78,12 +77,12 @@ const App = () => {
             )}
             {/* 1. Kassa va Hisob-kitoblar */}
             {activeTab === 'enterData' && (
-                <div className="grid grid-cols-1 items-start gap-4 lg:h-[calc(100dvh-5.5rem)] lg:min-h-0 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:overflow-hidden">
-                    <section className="min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto">
-                        <HistoryForm />
-                    </section>
+                <div className="grid grid-cols-1 items-start gap-4 lg:h-[calc(100dvh-5.5rem)] lg:min-h-0 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:overflow-hidden">
                     <section className="min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto">
                         <OrderForm />
+                    </section>
+                    <section className="min-w-0 lg:h-full lg:min-h-0 lg:overflow-y-auto">
+                        <HistoryForm />
                     </section>
                 </div>
             )}
@@ -125,12 +124,6 @@ const App = () => {
                 </div>
             )}
 
-            {/* 7. Hisob-kitoblar (Fakturalar) */}
-            {activeTab === 'invoices' && (
-                <div className="max-w-4xl mx-auto">
-                    <InvoicesForm />
-                </div>
-            )}
         </MainLayout>
     )
 }
