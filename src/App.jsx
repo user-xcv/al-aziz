@@ -32,12 +32,12 @@ const App = () => {
     const paymentsError = useSelector((state) => state.payments?.error)
     const inventorySalesError = useSelector((state) => state.inventorySales?.error)
     const dataErrors = [
-        historyError,
-        warehouseError,
-        clientsError,
-        paymentsError,
-        activeTab === 'materialSales' ? null : inventorySalesError,
-    ].filter(Boolean)
+        { section: 'Buyurtmalar tarixi', message: historyError },
+        { section: 'Ombor', message: warehouseError },
+        { section: 'Mijozlar', message: clientsError },
+        { section: 'To‘lovlar', message: paymentsError },
+        { section: 'Material savdosi', message: inventorySalesError },
+    ].filter((error) => error.message)
     useEffect(() => {
         if (!isSupabaseConfigured) return
         dispatch(fetchHistoryOrders())
@@ -170,8 +170,14 @@ const App = () => {
                 <p role="status" className="mb-3 text-xs text-slate-500">Ko‘rinish sozlamalari yuklanmoqda…</p>
             )}
             {dataErrors.length > 0 && (
-                <div role="alert" className="mb-3 flex items-center justify-between gap-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-                    <span>Supabase xatosi: {dataErrors[0]}</span>
+                <div role="alert" aria-live="assertive" className="mb-3 flex items-start justify-between gap-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
+                    <ul className="min-w-0 space-y-1">
+                        {dataErrors.map(({ section, message }) => (
+                            <li key={section}>
+                                <span className="font-semibold">{section}:</span> {message}
+                            </li>
+                        ))}
+                    </ul>
                     <button
                         type="button"
                         onClick={refreshData}

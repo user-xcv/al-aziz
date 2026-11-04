@@ -223,6 +223,12 @@ test('CRM opens without authentication and loads its data immediately', () => {
   assert.doesNotMatch(layoutSource, /onSignOut|Chiqish/)
 })
 
+test('all Supabase data loading errors are shown with their section names', () => {
+  assert.match(appSource, /dataErrors\.map\(\(\{ section, message \}\)/)
+  assert.match(appSource, /<span className="font-semibold">\{section\}:<\/span> \{message\}/)
+  assert.doesNotMatch(appSource, /dataErrors\[0\]/)
+})
+
 test('settings page is linked to global layout and shared Supabase preferences', () => {
   assert.match(appSource, /fetchSettingsAPI\(supabase\)/)
   assert.match(appSource, /saveSettingsAPI\(settings, supabase\)/)

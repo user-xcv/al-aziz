@@ -28,6 +28,47 @@ import {
 
 const emptyLine = { categoryId: '', formatId: '', materialId: '', count: '', customMarkup: '' }
 
+const sanitizeNumericInput = (value) => {
+  if (value === null || value === undefined) return ''
+
+  const cleaned = String(value)
+    .replace(/\s+/g, '')
+    .replace(/,/g, '')
+    .replace(/[^\d.]/g, '')
+
+  if (!cleaned) return ''
+
+  const [whole, ...decimalParts] = cleaned.split('.')
+  const normalizedWhole = whole.replace(/^0+(?=\d)/, '') || '0'
+  const normalizedDecimal = decimalParts.length ? `.${decimalParts.join('')}` : ''
+
+  return `${normalizedWhole}${normalizedDecimal}`
+}
+
+const formatCurrencyForInput = (value) => {
+  if (value === '' || value === null || value === undefined) return ''
+
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) return ''
+
+  return new Intl.NumberFormat('uz-UZ', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(numericValue)
+}
+
+const formatCurrencyValue = (value) => {
+  if (value === '' || value === null || value === undefined) return '0'
+
+  const numericValue = Number(value)
+  if (!Number.isFinite(numericValue)) return '0'
+
+  return new Intl.NumberFormat('uz-UZ', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  }).format(numericValue)
+}
+
 const OrderForm = () => {
   const dispatch = useDispatch()
   const { materials = [], categories = [] } = useSelector((state) => state.wareHouse || {})
@@ -60,7 +101,25 @@ const OrderForm = () => {
 
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    const parsedValue = sanitizeNumericInput(value)
+
+    setForm({
+      ...form,
+      [name]: parsedValue === '' ? '' : Number(parsedValue),
+    })
+    setSubmitError('')
+    setSubmitSuccess('')
+  }
+
+  const handleCurrencyInput = (e) => {
+    const { name, value } = e.target
+    const parsedValue = sanitizeNumericInput(value)
+
+    setForm((prev) => ({
+      ...prev,
+      [name]: parsedValue === '' ? '' : Number(parsedValue),
+    }))
     setSubmitError('')
     setSubmitSuccess('')
   }
@@ -157,6 +216,8 @@ const OrderForm = () => {
     serviceRevenue,
     operatingCosts,
   } = calculateOrderTotals(form, selectedLines)
+  const customerReceived = Number(form.overallmoney || 0)
+  const liveBalance = customerReceived - totalCosts
   const advanceError = getAdvanceValidationError(form.overallmoney, orderTotal)
   const materialTotals = getMaterialSelectionTotals(selectedLines)
 
@@ -266,19 +327,18 @@ const OrderForm = () => {
               Avans / olingan pul (so‘m)
             </label>
             <input
-              value={form.overallmoney}
+              value={formatCurrencyForInput(form.overallmoney)}
               name="overallmoney"
-              onChange={handleChange}
+              onChange={handleCurrencyInput}
               placeholder="0"
-              type="number"
-              min="0"
-              step="any"
+              type="text"
+              inputMode="numeric"
               aria-describedby={advanceError ? 'advance-help advance-error' : 'advance-help'}
               aria-invalid={Boolean(advanceError)}
               className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs font-bold"
             />
             <p id="advance-help" className="mt-1 text-[10px] text-slate-500">
-              Jami: {orderTotal.toLocaleString('uz-UZ')} so‘m
+              Jami: {formatCurrencyValue(orderTotal)} so‘m
             </p>
             {advanceError && (
               <p id="advance-error" role="alert" className="mt-1 rounded bg-rose-50 p-2 text-[11px] text-rose-700">
@@ -496,12 +556,12 @@ const OrderForm = () => {
                   <Icon className="w-3 h-3 text-slate-400" /> {label} (so‘m)
                 </label>
                 <input
-                  value={form[name]}
+                  value={formatCurrencyForInput(form[name])}
                   name={name}
-                  onChange={handleChange}
+                  onChange={handleCurrencyInput}
                   placeholder="0"
-                  type="number"
-                  min="0"
+                  type="text"
+                  inputMode="numeric"
                   className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-2.5 py-1.5 text-xs"
                 />
               </div>
@@ -509,7 +569,7 @@ const OrderForm = () => {
           </div>
           <div className="mt-4 border-t border-slate-100 pt-3">
             <p className="mb-2 text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-              Qo'shimcha xarajatlar (mijoz hisobiga qo'shiladi)
+              Qo'shimcha xarajatlar (sof foydadan chiqariladi)
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
@@ -522,16 +582,57 @@ const OrderForm = () => {
                     <Icon className="w-3 h-3 text-slate-400" /> {label} (so'm)
                   </label>
                   <input
-                    value={form[name]}
+                    value={formatCurrencyForInput(form[name])}
                     name={name}
-                    onChange={handleChange}
+                    onChange={handleCurrencyInput}
                     placeholder="0"
-                    type="number"
-                    min="0"
+                    type="text"
+                    inputMode="numeric"
                     className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-2.5 py-1.5 text-xs"
                   />
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              Live Calculation & Net Payoff
+            </p>
+            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+              real time
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+              <p className="text-[10px] text-slate-400">Mijoz bergan pul</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(customerReceived)} so‘m</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+              <p className="text-[10px] text-slate-400">Material tannarxi</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(materialCosts)} so‘m</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+              <p className="text-[10px] text-slate-400">Xizmatlar</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(serviceRevenue)} so‘m</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+              <p className="text-[10px] text-slate-400">Ichki xarajatlar</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(operatingCosts)} so‘m</p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+              <p className="text-[10px] text-slate-400">Qoldiq</p>
+              <p className={`mt-1 text-sm font-bold ${liveBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {formatCurrencyValue(liveBalance)} so‘m
+              </p>
+            </div>
+            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
+              <p className="text-[10px] text-slate-400">Sof foyda</p>
+              <p className={`mt-1 text-sm font-bold ${livePayoff >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {formatCurrencyValue(livePayoff)} so‘m
+              </p>
             </div>
           </div>
         </div>
@@ -546,14 +647,17 @@ const OrderForm = () => {
                 livePayoff < 0 ? 'text-rose-600' : livePayoff > 0 ? 'text-emerald-600' : 'text-slate-700'
               }`}
             >
-              {livePayoff.toLocaleString('uz-UZ')} so‘m
+              {formatCurrencyValue(livePayoff)} so‘m
             </span>
+            <p className="mt-1 text-[10px] text-slate-400">
+              Formula: mijoz to‘lovi − material tannarxi − ichki xarajatlar = sof foyda
+            </p>
           </div>
           <div className="text-right mr-3">
-            <p className="text-[10px] text-slate-400">Buyurtma jami: {orderTotal.toLocaleString('uz-UZ')} so‘m</p>
-            <p className="text-[10px] text-slate-400">Material tannarxi: {materialCosts.toLocaleString('uz-UZ')} so‘m</p>
-            <p className="text-[10px] text-slate-400">Material ustamasi: {materialMarkup.toLocaleString('uz-UZ')} so‘m · Xizmat: {serviceRevenue.toLocaleString('uz-UZ')} so‘m</p>
-            <p className="text-[10px] text-slate-400">Jami xarajat: {totalCosts.toLocaleString('uz-UZ')} so‘m (ichki {operatingCosts.toLocaleString('uz-UZ')})</p>
+            <p className="text-[10px] text-slate-400">Buyurtma jami: {formatCurrencyValue(orderTotal)} so‘m</p>
+            <p className="text-[10px] text-slate-400">Material tannarxi: {formatCurrencyValue(materialCosts)} so‘m</p>
+            <p className="text-[10px] text-slate-400">Material ustamasi: {formatCurrencyValue(materialMarkup)} so‘m · Xizmat: {formatCurrencyValue(serviceRevenue)} so‘m</p>
+            <p className="text-[10px] text-slate-400">Jami xarajat: {formatCurrencyValue(totalCosts)} so‘m (ichki {formatCurrencyValue(operatingCosts)})</p>
           </div>
           <button
             type="submit"

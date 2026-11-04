@@ -72,6 +72,7 @@ export const calculateOrderTotals = (form, materials = []) => {
 
   const revenue = roundMoney(materialRevenue + serviceRevenue)
   const totalCosts = roundMoney(materialCosts + operatingCosts)
+  const profit = roundMoney(revenue - totalCosts)
 
   return {
     revenue,
@@ -81,7 +82,7 @@ export const calculateOrderTotals = (form, materials = []) => {
     serviceRevenue: roundMoney(serviceRevenue),
     operatingCosts: roundMoney(operatingCosts),
     totalCosts,
-    profit: roundMoney(materialMarkup + serviceRevenue - operatingCosts),
+    profit,
   }
 }
 
@@ -99,6 +100,7 @@ export const getOrderFinancials = (order) => {
     0,
   )
   const revenue = roundMoney(materialCosts + materialMarkup + serviceRevenue)
+  const totalCosts = roundMoney(materialCosts + operatingCosts)
   const hasFinancialDetails =
     materials.length > 0 ||
     [...serviceRevenueFields, ...operatingCostFields].some((key) => order[key] !== undefined)
@@ -109,8 +111,8 @@ export const getOrderFinancials = (order) => {
     materialMarkup: roundMoney(materialMarkup),
     serviceRevenue: roundMoney(serviceRevenue),
     operatingCosts: roundMoney(operatingCosts),
-    totalCosts: roundMoney(materialCosts + operatingCosts),
-    profit: roundMoney(materialMarkup + serviceRevenue - operatingCosts),
+    totalCosts,
+    profit: roundMoney(revenue - totalCosts),
   }
 }
 

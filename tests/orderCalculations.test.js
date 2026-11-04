@@ -128,6 +128,7 @@ test('excludes internal costs from customer total and subtracts them from profit
   assert.equal(totals.operatingCosts, 22000)
   assert.equal(totals.totalCosts, 322000)
   assert.equal(totals.profit, 68000)
+  assert.equal(totals.profit, totals.revenue - totals.totalCosts)
 })
 
 test('aggregates each service separately without adding receipts to sales', () => {
