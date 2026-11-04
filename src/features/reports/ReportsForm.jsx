@@ -11,6 +11,31 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react'
+import { Bar, Pie, Line } from 'react-chartjs-2'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+)
 import {
   getOrderFinancials,
   operatingCostFields,
@@ -212,6 +237,57 @@ const ReportsForm = () => {
             {stats.totalClients}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">ta</p>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue Chart */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-blue-600" />
+            Daromad Tahlili
+          </h3>
+          <div className="h-64">
+            <Bar
+              data={{
+                labels: ['Materiallar', 'Xizmatlar', 'Ichki xarajatlar'],
+                datasets: [{
+                  label: 'Summa (so\'m)',
+                  data: [stats.materialSales, stats.serviceRevenue, stats.operatingCosts],
+                  backgroundColor: ['#3b82f6', '#10b981', '#ef4444'],
+                }]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Profit Chart */}
+        <div className="bg-white rounded-lg border border-slate-200 p-4">
+          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-3 flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-emerald-600" />
+            Foyda Tarkibi
+          </h3>
+          <div className="h-64">
+            <Pie
+              data={{
+                labels: ['Material ustamasi', 'Xizmatlar'],
+                datasets: [{
+                  data: [stats.materialMarkup, stats.serviceRevenue],
+                  backgroundColor: ['#8b5cf6', '#f59e0b'],
+                }]
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+              }}
+            />
+          </div>
         </div>
       </div>
 

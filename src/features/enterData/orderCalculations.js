@@ -69,7 +69,9 @@ export const calculateOrderTotals = (form, materials = []) => {
     return total + unitMarkup * numberOrZero(material.count)
   }, 0)
   const materialRevenue = materialCosts + materialMarkup
-  const revenue = roundMoney(serviceRevenue + materialRevenue)
+
+  // TO'G'RI MANTIQ: Barcha xarajatlar mijoz hisobiga qo'shiladi
+  const revenue = roundMoney(materialRevenue + serviceRevenue + operatingCosts)
   const totalCosts = roundMoney(materialCosts + operatingCosts)
 
   return {
@@ -80,7 +82,7 @@ export const calculateOrderTotals = (form, materials = []) => {
     serviceRevenue: roundMoney(serviceRevenue),
     operatingCosts: roundMoney(operatingCosts),
     totalCosts,
-    profit: roundMoney(materialMarkup + serviceRevenue - operatingCosts),
+    profit: roundMoney(materialMarkup + serviceRevenue),
   }
 }
 
@@ -97,7 +99,7 @@ export const getOrderFinancials = (order) => {
     (total, key) => total + numberOrZero(order[key]),
     0,
   )
-  const revenue = roundMoney(materialCosts + materialMarkup + serviceRevenue)
+  const revenue = roundMoney(materialCosts + materialMarkup + serviceRevenue + operatingCosts)
   const hasFinancialDetails =
     materials.length > 0 ||
     [...serviceRevenueFields, ...operatingCostFields].some((key) => order[key] !== undefined)
@@ -109,7 +111,7 @@ export const getOrderFinancials = (order) => {
     serviceRevenue: roundMoney(serviceRevenue),
     operatingCosts: roundMoney(operatingCosts),
     totalCosts: roundMoney(materialCosts + operatingCosts),
-    profit: roundMoney(materialMarkup + serviceRevenue - operatingCosts),
+    profit: roundMoney(materialMarkup + serviceRevenue),
   }
 }
 

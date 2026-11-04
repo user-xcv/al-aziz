@@ -509,7 +509,7 @@ const OrderForm = () => {
           </div>
           <div className="mt-4 border-t border-slate-100 pt-3">
             <p className="mb-2 text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-              Ichki xarajatlar (foydadan ayriladi, mijoz hisobiga qo‘shilmaydi)
+              Qo'shimcha xarajatlar (mijoz hisobiga qo'shiladi)
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
@@ -519,7 +519,7 @@ const OrderForm = () => {
               ].map(([name, label, Icon]) => (
                 <div key={name} className="space-y-1">
                   <label className="text-[11px] font-medium text-slate-600 flex items-center gap-1">
-                    <Icon className="w-3 h-3 text-slate-400" /> {label} (so‘m)
+                    <Icon className="w-3 h-3 text-slate-400" /> {label} (so'm)
                   </label>
                   <input
                     value={form[name]}
