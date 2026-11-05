@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { createOrder } from './orderThunk'
 import { matchesFormat } from '../wareHouse/wareHouseService'
 import { createClient } from '../clients/clientsThunk'
-import { calculateOrderTotals, getAdvanceValidationError } from './orderCalculations'
+import { calculateOrderTotals } from './orderCalculations'
 import { formatOrderSubmitError, validateOrderDraft } from './orderSubmission'
 import {
   getFormatsForCategory,
@@ -208,17 +208,10 @@ const OrderForm = () => {
     .filter(Boolean)
 
   const {
-    revenue: orderTotal,
     totalCosts,
-    materialCosts,
     profit: livePayoff,
-    materialMarkup,
-    serviceRevenue,
-    operatingCosts,
+    paymentsReceived: customerReceived,
   } = calculateOrderTotals(form, selectedLines)
-  const customerReceived = Number(form.overallmoney || 0)
-  const liveBalance = customerReceived - totalCosts
-  const advanceError = getAdvanceValidationError(form.overallmoney, orderTotal)
   const materialTotals = getMaterialSelectionTotals(selectedLines)
 
   const handleSubmit = async (e) => {
@@ -231,7 +224,6 @@ const OrderForm = () => {
       lines,
       categories,
       materials,
-      orderTotal,
     })
     if (validationError) {
       setSubmitError(validationError)
@@ -324,7 +316,7 @@ const OrderForm = () => {
           <div className="space-y-1">
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
               <HandCoins className="w-3.5 h-3.5 text-slate-400" />
-              Avans / olingan pul (so‘m)
+              Mijoz bergan jami pul (so‘m)
             </label>
             <input
               value={formatCurrencyForInput(form.overallmoney)}
@@ -333,18 +325,8 @@ const OrderForm = () => {
               placeholder="0"
               type="text"
               inputMode="numeric"
-              aria-describedby={advanceError ? 'advance-help advance-error' : 'advance-help'}
-              aria-invalid={Boolean(advanceError)}
               className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs font-bold"
             />
-            <p id="advance-help" className="mt-1 text-[10px] text-slate-500">
-              Jami: {formatCurrencyValue(orderTotal)} so‘m
-            </p>
-            {advanceError && (
-              <p id="advance-error" role="alert" className="mt-1 rounded bg-rose-50 p-2 text-[11px] text-rose-700">
-                {advanceError}
-              </p>
-            )}
           </div>
         </div>
 
@@ -599,34 +581,20 @@ const OrderForm = () => {
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">
-              Live Calculation & Net Payoff
+              Live foyda hisobi
             </p>
             <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
               real time
             </span>
           </div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-[10px] text-slate-400">Mijoz bergan pul</p>
+              <p className="text-[10px] text-slate-400">Mijoz bergan jami pul</p>
               <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(customerReceived)} so‘m</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-[10px] text-slate-400">Material tannarxi</p>
-              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(materialCosts)} so‘m</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-[10px] text-slate-400">Xizmatlar</p>
-              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(serviceRevenue)} so‘m</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-[10px] text-slate-400">Ichki xarajatlar</p>
-              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(operatingCosts)} so‘m</p>
-            </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-2.5">
-              <p className="text-[10px] text-slate-400">Qoldiq</p>
-              <p className={`mt-1 text-sm font-bold ${liveBalance >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                {formatCurrencyValue(liveBalance)} so‘m
-              </p>
+              <p className="text-[10px] text-slate-400">Barcha xarajatlar (material va ichki)</p>
+              <p className="mt-1 text-sm font-bold text-slate-800">{formatCurrencyValue(totalCosts)} so‘m</p>
             </div>
             <div className="rounded-lg border border-slate-200 bg-white p-2.5">
               <p className="text-[10px] text-slate-400">Sof foyda</p>
@@ -639,25 +607,9 @@ const OrderForm = () => {
 
         <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-              Kutilayotgan foyda
+            <p className="text-[10px] text-slate-500">
+              Sof foyda = mijoz bergan pul − barcha xarajatlar
             </p>
-            <span
-              className={`text-sm font-bold block mt-0.5 ${
-                livePayoff < 0 ? 'text-rose-600' : livePayoff > 0 ? 'text-emerald-600' : 'text-slate-700'
-              }`}
-            >
-              {formatCurrencyValue(livePayoff)} so‘m
-            </span>
-            <p className="mt-1 text-[10px] text-slate-400">
-              Formula: mijoz to‘lovi − material tannarxi − ichki xarajatlar = sof foyda
-            </p>
-          </div>
-          <div className="text-right mr-3">
-            <p className="text-[10px] text-slate-400">Buyurtma jami: {formatCurrencyValue(orderTotal)} so‘m</p>
-            <p className="text-[10px] text-slate-400">Material tannarxi: {formatCurrencyValue(materialCosts)} so‘m</p>
-            <p className="text-[10px] text-slate-400">Material ustamasi: {formatCurrencyValue(materialMarkup)} so‘m · Xizmat: {formatCurrencyValue(serviceRevenue)} so‘m</p>
-            <p className="text-[10px] text-slate-400">Jami xarajat: {formatCurrencyValue(totalCosts)} so‘m (ichki {formatCurrencyValue(operatingCosts)})</p>
           </div>
           <button
             type="submit"

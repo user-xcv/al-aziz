@@ -38,7 +38,6 @@ test('allows service-only orders and ignores the untouched empty material row', 
       lines: [{ categoryId: '', formatId: '', materialId: '', count: '', customMarkup: '' }],
       categories,
       materials,
-      orderTotal: 40000,
     }),
     '',
   )
@@ -50,7 +49,6 @@ test('reports incomplete material category, format, material, and quantity inlin
     lines: [line],
     categories,
     materials,
-    orderTotal: 40000,
   })
 
   assert.match(validate({ categoryId: '1' }), /formatni tanlang/)
@@ -59,19 +57,18 @@ test('reports incomplete material category, format, material, and quantity inlin
   assert.match(validate({ categoryId: '1', formatId: '11', materialId: '101', count: '1' }), /ustama noto‘g‘ri/)
 })
 
-test('validates stock, customer, overpayment, and complete material order', () => {
+test('validates stock and customer while allowing an advance above the order total', () => {
   const base = {
-    form: { ...validForm, overallmoney: '390000', bazis: '0' },
+    form: { ...validForm, overallmoney: '7000000', bazis: '0' },
     lines: [{ categoryId: '1', formatId: '11', materialId: '101', count: '1', customMarkup: '' }],
     categories,
     materials,
-    orderTotal: 390000,
   }
   assert.equal(validateOrderDraft(base), '')
 
   assert.match(
-    validateOrderDraft({ ...base, form: { ...base.form, overallmoney: '390001' } }),
-    /390\s000/,
+    validateOrderDraft({ ...base, form: { ...base.form, overallmoney: '-1' } }),
+    /Pul qiymatlarini/,
   )
   assert.match(
     validateOrderDraft({ ...base, lines: [{ ...base.lines[0], count: '6' }] }),

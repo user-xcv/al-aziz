@@ -133,6 +133,7 @@ ALTER TABLE materials ADD COLUMN IF NOT EXISTS format_id BIGINT REFERENCES forma
 ALTER TABLE materials ADD COLUMN IF NOT EXISTS markup_price NUMERIC NOT NULL DEFAULT 0;
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
 ALTER TABLE formats ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
+ALTER TABLE formats ADD COLUMN IF NOT EXISTS default_price NUMERIC NOT NULL DEFAULT 0;
 ALTER TABLE materials ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
 ALTER TABLE clients ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
 ALTER TABLE order_materials ADD COLUMN IF NOT EXISTS material_id BIGINT REFERENCES materials(id) ON DELETE SET NULL;
@@ -144,6 +145,7 @@ ALTER TABLE order_materials ADD COLUMN IF NOT EXISTS total_markup NUMERIC NOT NU
 ALTER TABLE payments ADD COLUMN IF NOT EXISTS expense_id BIGINT REFERENCES expenses(id) ON DELETE SET NULL;
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS order_total NUMERIC NOT NULL DEFAULT 0;
 ALTER TABLE expenses ADD COLUMN IF NOT EXISTS opening_paid NUMERIC NOT NULL DEFAULT 0;
+ALTER TABLE expenses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW();
 
 -- Install the trigger function before any migration UPDATEs because existing
 -- triggers run immediately during this script.
@@ -184,11 +186,11 @@ WHERE order_total IS DISTINCT FROM (
 );
 
 UPDATE expenses
-SET payoff = order_total -
+SET payoff = overallmoney -
   COALESCE((SELECT SUM(COALESCE(NULLIF(total_cost, 0), unit_cost * count))
             FROM order_materials WHERE expense_id = expenses.id), 0) -
   COALESCE(masterfee, 0) - COALESCE(spares, 0) - COALESCE(anotherexpenses, 0)
-WHERE payoff IS DISTINCT FROM order_total -
+WHERE payoff IS DISTINCT FROM overallmoney -
   COALESCE((SELECT SUM(COALESCE(NULLIF(total_cost, 0), unit_cost * count))
             FROM order_materials WHERE expense_id = expenses.id), 0) -
   COALESCE(masterfee, 0) - COALESCE(spares, 0) - COALESCE(anotherexpenses, 0);
@@ -353,16 +355,13 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   order_client_id BIGINT;
-  order_total NUMERIC;
-  opening_paid NUMERIC;
-  already_paid NUMERIC;
 BEGIN
   IF NEW.expense_id IS NULL THEN
     RETURN NEW;
   END IF;
 
-  SELECT e.client_id, e.order_total, e.opening_paid
-  INTO order_client_id, order_total, opening_paid
+  SELECT e.client_id
+  INTO order_client_id
   FROM expenses AS e
   WHERE e.id = NEW.expense_id
   FOR UPDATE;
@@ -374,15 +373,6 @@ BEGIN
     RAISE EXCEPTION 'To‘lov mijozini buyurtma mijoziga moslang';
   END IF;
 
-  SELECT COALESCE(SUM(amount), 0)
-  INTO already_paid
-  FROM payments
-  WHERE expense_id = NEW.expense_id
-    AND id IS DISTINCT FROM NEW.id;
-
-  IF opening_paid + already_paid + NEW.amount > order_total THEN
-    RAISE EXCEPTION 'To‘lov buyurtmaning qolgan summasidan oshib ketadi';
-  END IF;
   RETURN NEW;
 END;
 $$;
@@ -399,8 +389,14 @@ BEGIN
     IF affected_order_id IS NOT NULL THEN
       UPDATE expenses
       SET overallmoney = opening_paid + COALESCE(
-        (SELECT SUM(amount) FROM payments WHERE expense_id = affected_order_id), 0
-      )
+          (SELECT SUM(amount) FROM payments WHERE expense_id = affected_order_id), 0
+        ),
+        payoff = opening_paid + COALESCE(
+          (SELECT SUM(amount) FROM payments WHERE expense_id = affected_order_id), 0
+        ) -
+        COALESCE((SELECT SUM(COALESCE(NULLIF(total_cost, 0), unit_cost * count))
+                  FROM order_materials WHERE expense_id = affected_order_id), 0) -
+        COALESCE(masterfee, 0) - COALESCE(spares, 0) - COALESCE(anotherexpenses, 0)
       WHERE id = affected_order_id;
     END IF;
   END IF;
@@ -408,8 +404,14 @@ BEGIN
   IF TG_OP <> 'DELETE' AND NEW.expense_id IS NOT NULL THEN
     UPDATE expenses
     SET overallmoney = opening_paid + COALESCE(
-      (SELECT SUM(amount) FROM payments WHERE expense_id = NEW.expense_id), 0
-    )
+        (SELECT SUM(amount) FROM payments WHERE expense_id = NEW.expense_id), 0
+      ),
+      payoff = opening_paid + COALESCE(
+        (SELECT SUM(amount) FROM payments WHERE expense_id = NEW.expense_id), 0
+      ) -
+      COALESCE((SELECT SUM(COALESCE(NULLIF(total_cost, 0), unit_cost * count))
+                FROM order_materials WHERE expense_id = NEW.expense_id), 0) -
+      COALESCE(masterfee, 0) - COALESCE(spares, 0) - COALESCE(anotherexpenses, 0)
     WHERE id = NEW.expense_id;
   END IF;
   IF TG_OP = 'DELETE' THEN
@@ -584,10 +586,6 @@ BEGIN
     material_revenue := material_revenue + unit_price * line_count;
   END LOOP;
   order_total_value := service_revenue + material_revenue;
-  IF initial_payment > order_total_value THEN
-    RAISE EXCEPTION 'Avans buyurtma summasidan oshib ketmasligi kerak';
-  END IF;
-
   INSERT INTO expenses (
     client_id, bazis, cutting, kromka, piercing, rover, masterfee,
     spares, anotherexpenses, overallmoney, order_total, opening_paid, payoff
@@ -601,10 +599,10 @@ BEGIN
     COALESCE(NULLIF(order_data->>'masterfee', '')::NUMERIC, 0),
     COALESCE(NULLIF(order_data->>'spares', '')::NUMERIC, 0),
     COALESCE(NULLIF(order_data->>'anotherexpenses', '')::NUMERIC, 0),
+    initial_payment,
     0,
-    order_total_value,
     0,
-    order_total_value - material_costs - operating_costs
+    initial_payment - material_costs - operating_costs
   ) RETURNING id INTO new_order_id;
 
   IF initial_payment > 0 THEN

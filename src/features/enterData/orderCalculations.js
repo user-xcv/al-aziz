@@ -18,18 +18,6 @@ export const operatingCostFields = [
 ]
 
 const roundMoney = (amount) => Math.round(amount * 100) / 100
-const formatMoney = (amount) => roundMoney(amount).toLocaleString('uz-UZ')
-
-export const getAdvanceValidationError = (value, customerTotal) => {
-  const advance = Number(value || 0)
-  if (!Number.isFinite(advance) || advance < 0) {
-    return 'Avans summasini to‘g‘ri kiriting.'
-  }
-  if (advance > customerTotal) {
-    return `${formatMoney(advance)} so‘mlik avans buyurtma jami ${formatMoney(customerTotal)} so‘mdan ${formatMoney(advance - customerTotal)} so‘m ortiq. Avansni kamaytiring yoki buyurtmaga material/xizmat qo‘shib jami summani oshiring.`
-  }
-  return ''
-}
 
 const getMaterialTotalCost = (material) => {
   const savedTotalCost = numberOrZero(material.total_cost)
@@ -72,11 +60,12 @@ export const calculateOrderTotals = (form, materials = []) => {
 
   const revenue = roundMoney(materialRevenue + serviceRevenue)
   const totalCosts = roundMoney(materialCosts + operatingCosts)
-  const profit = roundMoney(revenue - totalCosts)
+  const paymentsReceived = numberOrZero(form.overallmoney)
+  const profit = roundMoney(paymentsReceived - totalCosts)
 
   return {
     revenue,
-    paymentsReceived: numberOrZero(form.overallmoney),
+    paymentsReceived,
     materialCosts: roundMoney(materialCosts),
     materialMarkup: roundMoney(materialMarkup),
     serviceRevenue: roundMoney(serviceRevenue),
@@ -101,6 +90,12 @@ export const getOrderFinancials = (order) => {
   )
   const revenue = roundMoney(materialCosts + materialMarkup + serviceRevenue)
   const totalCosts = roundMoney(materialCosts + operatingCosts)
+  const paymentsReceived = order.overallmoney === undefined || order.overallmoney === null
+    ? numberOrZero(order.opening_paid) + (order.payments || []).reduce(
+      (total, payment) => total + numberOrZero(payment.amount),
+      0,
+    )
+    : numberOrZero(order.overallmoney)
   const hasFinancialDetails =
     materials.length > 0 ||
     [...serviceRevenueFields, ...operatingCostFields].some((key) => order[key] !== undefined)
@@ -112,7 +107,8 @@ export const getOrderFinancials = (order) => {
     serviceRevenue: roundMoney(serviceRevenue),
     operatingCosts: roundMoney(operatingCosts),
     totalCosts,
-    profit: roundMoney(revenue - totalCosts),
+    paymentsReceived: roundMoney(paymentsReceived),
+    profit: roundMoney(paymentsReceived - totalCosts),
   }
 }
 

@@ -211,12 +211,8 @@ Sof foyda = (Material ustamasi + Xizmatlar) - Ichki xarajatlar
 ### Buyurtma:
 ```
 Buyurtma jami = Σ(Material narxi × Soni) + Σ(Xizmatlar narxi)
-Material tannarxi = Σ(Olish narxi × Soni)
-Material ustamasi = Σ((Sotish narxi - Olish narxi) × Soni)
-Xizmatlar daromadi = Σ(Bazis + Arra + Kromka + Teshish + Rover)
-Ichki xarajatlar = Σ(Usta haqi + Zapchast + Boshqa)
-Jami xarajat = Material tannarxi + Ichki xarajatlar
-Sof foyda = (Material ustamasi + Xizmatlar daromadi) - Ichki xarajatlar
+Jami xarajat = Materiallar tannarxi + Usta haqi + Zapchast + Boshqa xarajatlar
+Sof foyda = Mijoz bergan jami pul - Jami xarajat
 Qolgan qarz = Buyurtma jami - Olingan pul
 ```
 
@@ -235,7 +231,7 @@ Marja (%) = (Ustama / Olish narxi) × 100
 
 1. **Ombor:** Material sotilganda avtomatik kamayadi
 2. **O'chirish:** Buyurtma o'chirilganda ombor qaytarilmaydi
-3. **Avans:** Avans buyurtma jami summasidan oshmasligi kerak
+3. **Avans:** Mijoz buyurtma jami summasidan ortiq avans berishi mumkin
 4. **Foyda:** Ichki xarajatlar foydadan ayriladi, mijoz hisobiga qo'shilmaydi
 5. **Backup:** Supabase avtomatik backup qiladi
 6. **Offline:** Internet yo'q bo'lsa, ishlamaydi

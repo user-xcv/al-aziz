@@ -1,4 +1,3 @@
-import { getAdvanceValidationError } from './orderCalculations.js'
 import { findOverStockMaterial, getMaterialsForSelection } from './materialSelection.js'
 
 const moneyFields = [
@@ -18,7 +17,6 @@ export const validateOrderDraft = ({
   lines,
   categories,
   materials,
-  orderTotal,
 }) => {
   if (!form.client_id) return 'Mijozni tanlang yoki yangi mijoz qo‘shing.'
 
@@ -82,9 +80,7 @@ export const validateOrderDraft = ({
     return `${overStock.name}: tanlangan miqdor ${overStock.count} dona, omborda ${overStock.stock} dona bor.`
   }
 
-  if (orderTotal <= 0) return 'Buyurtmaga kamida bitta material yoki narxli xizmat kiriting.'
-
-  return getAdvanceValidationError(form.overallmoney, orderTotal)
+  return ''
 }
 
 export const formatOrderSubmitError = (error) => {

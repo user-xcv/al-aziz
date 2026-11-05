@@ -83,6 +83,7 @@ test('CRM totals add direct material sale revenue and profit once to order total
   const summary = aggregateCrmFinancials(
     [{
       order_total: 390000,
+      overallmoney: 390000,
       cutting: 40000,
       order_materials: [{
         count: 1,

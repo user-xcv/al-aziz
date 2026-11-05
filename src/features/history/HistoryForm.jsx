@@ -109,7 +109,7 @@ const HistoryForm = () => {
                     ) : (
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
                             {filteredRecords.map((item) => {
-                                const payoffVal = Number(item.payoff || 0)
+                                const payoffVal = getOrderFinancials(item).profit
                                 const isPositive = payoffVal >= 0
                                 return (
                                     <div

@@ -3,7 +3,6 @@ import test from 'node:test'
 import {
   aggregateOrderFinancials,
   calculateOrderTotals,
-  getAdvanceValidationError,
   getOrderFinancials,
 } from '../src/features/enterData/orderCalculations.js'
 import { getOrderPaid, getOrderTotal } from '../src/features/enterData/orderAmounts.js'
@@ -15,6 +14,7 @@ test('calculates material markup and service revenue without double-counting mar
       cutting: '40000',
       kromka: '60000',
       piercing: '50000',
+      overallmoney: '600000',
     },
     [
       { count: 1, cost_price: 300000, unit_markup: 50000, price: 350000 },
@@ -23,27 +23,27 @@ test('calculates material markup and service revenue without double-counting mar
 
   assert.deepEqual(totals, {
     revenue: 550000,
-    paymentsReceived: 0,
+    paymentsReceived: 600000,
     materialCosts: 300000,
     materialMarkup: 50000,
     serviceRevenue: 200000,
     operatingCosts: 0,
     totalCosts: 300000,
-    profit: 250000,
+    profit: 300000,
   })
 })
 
 test('keeps negative profit visible instead of clamping it to zero', () => {
   const totals = calculateOrderTotals(
-    { overallmoney: 100 },
+    { overallmoney: 0 },
     [{ count: 1, cost_price: 50, unit_markup: -25, price: 25 }],
   )
 
   assert.equal(totals.revenue, 25)
   assert.equal(totals.totalCosts, 50)
-  assert.equal(totals.profit, -25)
+  assert.equal(totals.profit, -50)
   assert.equal(totals.materialMarkup, -25)
-  assert.equal(totals.paymentsReceived, 100)
+  assert.equal(totals.paymentsReceived, 0)
 })
 
 test('ignores invalid numeric input without producing NaN', () => {
@@ -64,8 +64,25 @@ test('ignores invalid numeric input without producing NaN', () => {
   })
 })
 
+test('calculates the live net amount from received money minus costs', () => {
+  const totals = calculateOrderTotals(
+    {
+      overallmoney: '7000000',
+      masterfee: '15000',
+      spares: '5000',
+    },
+    [{ count: 1, cost_price: 300000, unit_markup: 50000, price: 350000 }],
+  )
+
+  assert.equal(totals.paymentsReceived, 7000000)
+  assert.equal(totals.totalCosts, 320000)
+  assert.equal(totals.profit, 6680000)
+  assert.equal(totals.materialMarkup, 50000)
+})
+
 test('derives saved order financials from material snapshots and service revenue', () => {
   const financials = getOrderFinancials({
+    overallmoney: 550000,
     order_total: 550000,
     bazis: 50000,
     cutting: 40000,
@@ -89,12 +106,14 @@ test('derives saved order financials from material snapshots and service revenue
     serviceRevenue: 200000,
     operatingCosts: 0,
     totalCosts: 300000,
+    paymentsReceived: 550000,
     profit: 250000,
   })
 })
 
 test('uses saved unit costs when older material rows have an empty total cost snapshot', () => {
   const financials = getOrderFinancials({
+    overallmoney: 700,
     order_materials: [{
       count: 2,
       price: 350,
@@ -118,6 +137,7 @@ test('excludes internal costs from customer total and subtracts them from profit
       masterfee: 15000,
       spares: 5000,
       anotherexpenses: 2000,
+      overallmoney: 390000,
     },
     [{ count: 1, cost_price: 300000, unit_markup: 50000, price: 350000 }],
   )
@@ -151,6 +171,7 @@ test('aggregates each service separately without adding receipts to sales', () =
     },
     {
       cutting: 10000,
+      overallmoney: 10000,
       order_materials: [],
     },
   ])
@@ -161,7 +182,7 @@ test('aggregates each service separately without adding receipts to sales', () =
   assert.equal(summary.materialMarkup, 50000)
   assert.equal(summary.serviceRevenue, 210000)
   assert.equal(summary.operatingCosts, 22000)
-  assert.equal(summary.netProfit, 238000)
+  assert.equal(summary.netProfit, -312000)
   assert.deepEqual(summary.serviceRevenueByField, {
     bazis: 50000,
     cutting: 50000,
@@ -184,34 +205,6 @@ test('calculates invoice revenue, legacy paid amount, and remaining linked balan
   assert.equal(getOrderTotal(order), 250)
   assert.equal(getOrderPaid(order), 90)
   assert.equal(getOrderPaid(order, 2), 50)
-})
-
-test('allows an empty advance and an advance up to the exact customer total', () => {
-  assert.equal(getAdvanceValidationError('', 38400), '')
-  assert.equal(getAdvanceValidationError('0', 38400), '')
-  assert.equal(getAdvanceValidationError('38400', 38400), '')
-})
-
-test('explains the invoice total and excess when an advance is too high', () => {
-  const error = getAdvanceValidationError('70000000', 38400)
-  const digitsOnly = error.replace(/\D/g, '')
-
-  assert.match(error, /so‘mdan/)
-  assert.match(error, /kamaytiring/)
-  assert.match(error, /material\/xizmat/)
-  assert.ok(digitsOnly.includes('70000000'))
-  assert.ok(digitsOnly.includes('38400'))
-  assert.ok(digitsOnly.includes('69961600'))
-})
-
-test('matches the 38,400-so‘m service-only invoice shown in the reported example', () => {
-  const { revenue } = calculateOrderTotals(
-    { bazis: 1200, cutting: 12000, kromka: 12000, piercing: 12000, rover: 1200 },
-    [],
-  )
-
-  assert.equal(revenue, 38400)
-  assert.ok(getAdvanceValidationError('70000000', revenue))
 })
 
 test('derives invoice total for a legacy order without an order_total column value', () => {

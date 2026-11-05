@@ -19,6 +19,10 @@ const appSettingsMigrationSql = readFileSync(
   new URL('../supabase-app-settings.sql', import.meta.url),
   'utf8',
 )
+const advanceMigrationSql = readFileSync(
+  new URL('../supabase-allow-advance-over-order-total.sql', import.meta.url),
+  'utf8',
+)
 const appSource = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8')
 const layoutSource = readFileSync(
   new URL('../src/layout/mainLayout.jsx', import.meta.url),
@@ -143,15 +147,26 @@ test('setup drops its named triggers before recreating them', () => {
   }
 })
 
+test('order setup and migration allow payments above the order total', () => {
+  assert.doesNotMatch(setupSql, /initial_payment\s*>\s*order_total_value/i)
+  assert.doesNotMatch(setupSql, /already_paid\s*\+\s*NEW\.amount\s*>\s*order_total/i)
+  assert.match(advanceMigrationSql, /CREATE OR REPLACE FUNCTION public\.validate_payment_order/)
+  assert.doesNotMatch(advanceMigrationSql, /NEW\.amount\s*>|order_total/i)
+  assert.match(advanceMigrationSql, /order_client_id\s*<>\s*NEW\.client_id/)
+  assert.match(advanceMigrationSql, /CREATE OR REPLACE FUNCTION public\.sync_order_payments_total/)
+  assert.match(advanceMigrationSql, /payoff = opening_paid \+ COALESCE/)
+})
+
 test('setup migrates markup snapshots and applies the new profit formula', () => {
   assert.match(setupSql, /ALTER TABLE materials ADD COLUMN IF NOT EXISTS markup_price/)
   assert.match(setupSql, /ALTER TABLE order_materials ADD COLUMN IF NOT EXISTS unit_markup/)
   assert.match(setupSql, /ALTER TABLE order_materials ADD COLUMN IF NOT EXISTS total_markup/)
   assert.match(setupSql, /order_total_value := service_revenue \+ material_revenue/)
-  assert.match(setupSql, /order_total_value - material_costs - operating_costs/)
+  assert.match(setupSql, /initial_payment - material_costs - operating_costs/)
   assert.match(setupSql, /operating_costs :=[\s\S]*?'masterfee'[\s\S]*?'spares'[\s\S]*?'anotherexpenses'/)
   assert.match(setupSql, /WHERE unit_markup IS DISTINCT FROM/)
-  assert.match(setupSql, /WHERE payoff IS DISTINCT FROM/)
+  assert.match(setupSql, /SET payoff = overallmoney -/)
+  assert.match(setupSql, /payoff = opening_paid \+ COALESCE/)
 })
 
 test('setup enforces that a material format belongs to the same category', () => {
@@ -175,6 +190,8 @@ test('setup adds missing updated_at columns and trigger handles schemas without 
       new RegExp(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW\\(\\)`),
     )
   }
+  assert.match(setupSql, /ALTER TABLE formats ADD COLUMN IF NOT EXISTS default_price NUMERIC NOT NULL DEFAULT 0/)
+  assert.match(setupSql, /ALTER TABLE expenses ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW\(\)/)
   assert.match(setupSql, /IF to_jsonb\(NEW\) \? 'updated_at' THEN/)
   assert.match(setupSql, /jsonb_populate_record\(NEW, jsonb_build_object\('updated_at', NOW\(\)\)\)/)
   assert.doesNotMatch(setupSql, /NEW\.updated_at = NOW\(\)/)
@@ -196,6 +213,8 @@ test('updated_at recovery script is idempotent and restores the client columns u
   assert.match(updatedAtRepairSql, /ALTER TABLE public\.clients[\s\S]*?ADD COLUMN IF NOT EXISTS phone_number/)
   assert.match(updatedAtRepairSql, /ALTER TABLE public\.clients[\s\S]*?ADD COLUMN IF NOT EXISTS address/)
   assert.match(updatedAtRepairSql, /ALTER TABLE public\.clients[\s\S]*?ADD COLUMN IF NOT EXISTS notes/)
+  assert.match(updatedAtRepairSql, /ALTER TABLE public\.formats[\s\S]*?ADD COLUMN IF NOT EXISTS default_price NUMERIC NOT NULL DEFAULT 0/)
+  assert.match(updatedAtRepairSql, /ALTER TABLE public\.expenses[\s\S]*?ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW\(\)/)
   assert.match(updatedAtRepairSql, /CREATE OR REPLACE FUNCTION public\.update_updated_at_column\(\)/)
   assert.match(updatedAtRepairSql, /IF to_jsonb\(NEW\) \? 'updated_at' THEN/)
   assert.match(updatedAtRepairSql, /BEGIN;[\s\S]*COMMIT;\s*$/)
