@@ -4,7 +4,6 @@ import {
   fetchClients,
   createClient,
   editClient,
-  removeClient,
   searchClients
 } from './clientsThunk'
 import {
@@ -81,9 +80,17 @@ const ClientsForm = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Haqiqatan ham bu mijozni o'chirmoqchimisiz?")) {
       try {
-        await dispatch(removeClient(id)).unwrap()
+        // Soft delete: bazadan butunlay o'chirmaydi, faqat deleted_at ni sozlaydi
+        const { error } = await supabase
+          .from('clients')
+          .update({ deleted_at: new Date().toISOString() })
+          .eq('id', id)
+          .is('deleted_at', null);
+
+        if (error) throw error;
+        dispatch(fetchClients());
       } catch (err) {
-        alert('Xatolik: ' + err)
+        alert('Xatolik: ' + err.message);
       }
     }
   }
@@ -131,6 +138,26 @@ const ClientsForm = () => {
             onChange={handleSearch}
             className="w-full bg-slate-50 border border-slate-200 focus:border-blue-500 outline-none rounded-md pl-10 pr-4 py-2 text-xs"
           />
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white rounded-lg border border-slate-200 p-3">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase">Jami Mijozlar</p>
+          <p className="text-sm font-bold text-slate-800">{clients.length}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-3">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase">Jami Buyurtmalar</p>
+          <p className="text-sm font-bold text-slate-800">{historyList.length}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-3">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase">Sotuvlar</p>
+          <p className="text-sm font-bold text-slate-800">{sales.length}</p>
+        </div>
+        <div className="bg-white rounded-lg border border-slate-200 p-3">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase">Umumiy Tushum</p>
+          <p className="text-sm font-bold text-emerald-600">{historyList.reduce((sum, o) => sum + Number(o.overallmoney || 0), 0).toLocaleString('uz-UZ')} so'm</p>
         </div>
       </div>
 

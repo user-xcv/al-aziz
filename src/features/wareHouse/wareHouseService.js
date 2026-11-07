@@ -4,6 +4,7 @@ export const fetchWareHouseDataAPI = async () => {
   const { data: categories, error: catErr } = await supabase
     .from('categories')
     .select('*, formats(*)')
+    .is('formats.deleted_at', null)
     .order('id', { ascending: true })
 
   if (catErr) throw catErr
@@ -11,6 +12,7 @@ export const fetchWareHouseDataAPI = async () => {
   const { data: materials, error: matErr } = await supabase
     .from('materials')
     .select('*, categories(name)')
+    .is('deleted_at', null)
     .order('id', { ascending: false })
 
   if (matErr) throw matErr

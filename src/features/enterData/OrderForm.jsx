@@ -5,6 +5,7 @@ import { matchesFormat } from '../wareHouse/wareHouseService'
 import { createClient } from '../clients/clientsThunk'
 import { calculateOrderTotals } from './orderCalculations'
 import { formatOrderSubmitError, validateOrderDraft } from './orderSubmission'
+import { extractOrderFromImage, detectProvider } from './orderOcrService'
 import {
   getFormatsForCategory,
   getMaterialSelectionTotals,
@@ -15,11 +16,14 @@ import {
   Cpu,
   HandCoins,
   HelpCircle,
-  Layers,
+  Image,
+  ImageMinus,
+  Loader2,
   Monitor,
   PackagePlus,
   PlusCircle,
   Scissors,
+  Save,
   Sparkles,
   User,
   Wrench,
@@ -99,6 +103,14 @@ const OrderForm = () => {
     phone_number: ''
   })
 
+  // OCR holatlari
+  const [ocrFile, setOcrFile] = useState(null)
+  const [ocrPreview, setOcrPreview] = useState('')
+  const [ocrData, setOcrData] = useState(null)
+  const [ocrLoading, setOcrLoading] = useState(false)
+  const [ocrProvider, setOcrProvider] = useState(detectProvider())
+  const [ocrModalOpen, setOcrModalOpen] = useState(false)
+
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -122,6 +134,103 @@ const OrderForm = () => {
     }))
     setSubmitError('')
     setSubmitSuccess('')
+  }
+
+  // OCR: rasmni tanlash
+  const handleOcrFileChange = (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setSubmitError('Iltimos, rasm faylini tanlang.')
+      return
+    }
+    setOcrFile(file)
+    setOcrPreview(URL.createObjectURL(file))
+    setSubmitError('')
+  }
+
+  // OCR: AI orqali rasmdan ma'lumotlarni ajratish
+  const handleOcrExtract = async () => {
+    if (!ocrFile) return
+    const provider = ocrProvider || detectProvider()
+    if (!provider) {
+      setSubmitError('AI Vision API kaliti sozlanmagan. VITE_GEMINI_API_KEY yoki VITE_OPENAI_API_KEY ni .env ga kiriting.')
+      return
+    }
+    setOcrLoading(true)
+    setSubmitError('')
+    try {
+      const apiKey =
+        provider === 'gemini'
+          ? import.meta.env.VITE_GEMINI_API_KEY
+          : import.meta.env.VITE_OPENAI_API_KEY
+      const data = await extractOrderFromImage(ocrFile, apiKey, provider)
+      setOcrData(data)
+      setOcrModalOpen(true)
+    } catch (err) {
+      setSubmitError(err.message || 'OCR xatosi yuz berdi.')
+    } finally {
+      setOcrLoading(false)
+    }
+  }
+
+  // OCR: ajratilgan ma'lumotlarni forma ga qo'llash
+  const applyOcrData = () => {
+    if (!ocrData) return
+
+    // Mijoz ismi va telefon
+    if (ocrData.client_name) {
+      setForm((prev) => ({ ...prev, name: ocrData.client_name }))
+    }
+    if (ocrData.phone) {
+      setForm((prev) => ({ ...prev, phone_number: ocrData.phone }))
+    }
+    if (ocrData.initial_payment != null) {
+      setForm((prev) => ({ ...prev, overallmoney: String(ocrData.initial_payment) }))
+    }
+
+    // Ichki xarajatlar
+    if (ocrData.expenses) {
+      if (ocrData.expenses.masterfee != null) {
+        setForm((prev) => ({ ...prev, masterfee: String(ocrData.expenses.masterfee) }))
+      }
+      if (ocrData.expenses.spares != null) {
+        setForm((prev) => ({ ...prev, spares: String(ocrData.expenses.spares) }))
+      }
+      if (ocrData.expenses.anotherexpenses != null) {
+        setForm((prev) => ({ ...prev, anotherexpenses: String(ocrData.expenses.anotherexpenses) }))
+      }
+    }
+
+    // Xizmatlar
+    if (ocrData.services) {
+      if (ocrData.services.bazis != null) {
+        setForm((prev) => ({ ...prev, bazis: String(ocrData.services.bazis) }))
+      }
+      if (ocrData.services.cutting != null) {
+        setForm((prev) => ({ ...prev, cutting: String(ocrData.services.cutting) }))
+      }
+      if (ocrData.services.kromka != null) {
+        setForm((prev) => ({ ...prev, kromka: String(ocrData.services.kromka) }))
+      }
+      if (ocrData.services.piercing != null) {
+        setForm((prev) => ({ ...prev, piercing: String(ocrData.services.piercing) }))
+      }
+      if (ocrData.services.rover != null) {
+        setForm((prev) => ({ ...prev, rover: String(ocrData.services.rover) }))
+      }
+    }
+
+    setOcrModalOpen(false)
+    setSubmitSuccess('Ma’lumotlar rasmdan avtomatik kiritildi. Iltimos, tekshirib saqlang.')
+  }
+
+  const clearOcr = () => {
+    setOcrFile(null)
+    setOcrPreview('')
+    setOcrData(null)
+    setOcrLoading(false)
+    setSubmitError('')
   }
 
   const handleClientChange = (e) => {
@@ -328,6 +437,77 @@ const OrderForm = () => {
               className="w-full bg-white border border-slate-200 focus:border-blue-500 outline-none rounded-md px-3 py-1.5 text-xs font-bold"
             />
           </div>
+        </div>
+
+        {/* OCR: Rasm yuklash va AI orqali o'qish */}
+        <div className="bg-slate-50 rounded-lg border border-slate-200 p-3">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
+              <Image className="w-3.5 h-3.5 text-blue-600" />
+              AI orqali rasmga olish (OCR)
+            </label>
+            {ocrProvider ? (
+              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded">AI: {ocrProvider}</span>
+            ) : (
+              <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded">API kalit yo‘q</span>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleOcrFileChange}
+              className="sr-only"
+              id="ocr-file-input"
+            />
+            <label
+              htmlFor="ocr-file-input"
+              onClick={() => document.getElementById('ocr-file-input')?.click()}
+              className={`flex-1 bg-white border rounded-md px-3 py-2 text-xs text-center cursor-pointer transition-all ${
+                ocrFile
+                  ? 'border-blue-500 bg-blue-50 text-blue-700'
+                  : 'border-slate-200 text-slate-500 hover:border-slate-300'
+              }`}
+            >
+              {ocrFile ? 'Rasm tanlandi' : 'Rasm yuklash'}
+            </label>
+
+            <button
+              onClick={handleOcrExtract}
+              disabled={ocrLoading || !ocrFile || !ocrProvider}
+              className={`px-3 py-2 rounded-md text-xs font-semibold transition-all disabled:opacity-50 ${
+                ocrLoading
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : ocrFile && ocrProvider
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-slate-100 text-slate-400'
+              }`}
+            >
+              {ocrLoading ? (
+                <Loader2 className="w-3.5 h-3.5" />
+              ) : (
+                'AI orqali o‘qish'
+              )}
+            </button>
+          </div>
+
+          {ocrPreview && (
+            <div className="mt-2">
+              <img
+                src={ocrPreview}
+                alt="OCR preview"
+                className="w-full h-32 object-cover rounded-md border border-slate-200 bg-slate-100"
+              />
+              <button
+                type="button"
+                onClick={clearOcr}
+                className="mt-1 text-[10px] text-rose-500 hover:text-rose-700 underline"
+              >
+                Rasmni olib tashlash
+              </button>
+            </div>
+          )}
         </div>
 
         <hr className="border-slate-100" />
@@ -621,6 +801,108 @@ const OrderForm = () => {
         </div>
       </div>
     </form>
+
+    {/* OCR: Ajratilgan ma'lumotlarni ko'rib chiqish modal */}
+    {ocrModalOpen && ocrData && (
+      <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg max-w-lg w-full p-5 shadow-xl border border-slate-200 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Image className="w-4 h-4 text-blue-600" />
+              AI dan olingan ma'lumotlar
+            </h3>
+            <button
+              onClick={() => setOcrModalOpen(false)}
+              className="p-1 rounded hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <p className="text-[10px] text-slate-500">Mijoz ismi</p>
+                <p className="font-semibold text-slate-800">{ocrData.client_name || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500">Telefon</p>
+                <p className="font-semibold text-slate-800">{ocrData.phone || '—'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-slate-500">Olingan avans</p>
+                <p className="font-semibold text-slate-800">{ocrData.initial_payment ? ocrData.initial_payment.toLocaleString('uz-UZ') : '—'} so'm</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 mb-1">Materiallar:</p>
+              <div className="space-y-1">
+                {ocrData.materials?.length > 0 ? (
+                  ocrData.materials.map((m, i) => (
+                    <div key={i} className="flex justify-between text-[10px]">
+                      <span className="text-slate-600">{m.name}</span>
+                      <span className="font-bold text-slate-800">
+                        {m.count ? m.count.toLocaleString('uz-UZ') : '—'} dona ·
+                        {m.price ? m.price.toLocaleString('uz-UZ') : '—'} so'm
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-slate-400">Material topilmadi</p>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 mb-1">Xizmatlar:</p>
+              <div className="grid grid-cols-2 gap-1">
+                {Object.entries(ocrData.services || {}).map(([key, val]) => (
+                  <div key={key} className="flex justify-between text-[10px]">
+                    <span className="text-slate-600 capitalize">{key}</span>
+                    <span className="font-bold text-slate-800">
+                      {val != null ? val.toLocaleString('uz-UZ') : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 mb-1">Ichki xarajatlar:</p>
+              <div className="grid grid-cols-2 gap-1">
+                {Object.entries(ocrData.expenses || {}).map(([key, val]) => (
+                  <div key={key} className="flex justify-between text-[10px]">
+                    <span className="text-slate-600 capitalize">{key}</span>
+                    <span className="font-bold text-slate-800">
+                      {val != null ? val.toLocaleString('uz-UZ') : '—'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-3 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={applyOcrData}
+              disabled={!ocrData}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-md text-xs"
+            >
+              Formaga qo'llash
+            </button>
+            <button
+              type="button"
+              onClick={() => setOcrModalOpen(false)}
+              className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium py-2 rounded-md text-xs"
+            >
+              Bekor qilish
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Yangi Mijoz Modal */}
     {showNewClientModal && (

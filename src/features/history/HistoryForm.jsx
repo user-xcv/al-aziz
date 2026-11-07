@@ -123,7 +123,7 @@ const HistoryForm = () => {
                                             </div>
                                             <div className="min-w-0">
                                                 <p className="text-xs font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
-                                                    {item.clients?.name || 'Noma\'lum'}
+                                                    {item.clients?.name || 'O‘chirilgan mijoz'}
                                                 </p>
                                                 <p className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
                                                     <Calendar className="w-2.5 h-2.5 text-slate-300" />

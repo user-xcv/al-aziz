@@ -12,11 +12,11 @@ import {
   Trash2,
 } from 'lucide-react'
 import { fetchWareHouseData } from './wareHouseThunk'
+import { supabase } from '../../api/supabase'
 import {
   addCategoryAPI,
   addFormatAPI,
   addMaterialAPI,
-  deleteMaterialAPI,
   matchesFormat,
   updateMaterialAPI,
 } from './wareHouseService'
@@ -126,7 +126,15 @@ const WareHouseForm = () => {
   const handleDeleteItem = async (id) => {
     if (!window.confirm("Materialni o'chirasizmi?")) return
     try {
-      await deleteMaterialAPI(id)
+      // Soft delete: bazadan butunlay o'chirmaydi, faqat deleted_at ni sozlaydi
+      const { error } = await supabase
+        .from('materials')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', id)
+        .is('deleted_at', null);
+
+      if (error) throw error;
+      showMessage('Material arxiivga yuborildi');
       await reload()
     } catch (err) {
       showMessage(err.message)

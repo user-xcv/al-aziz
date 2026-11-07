@@ -4,6 +4,7 @@ export const fetchClientsAPI = async () => {
   const { data, error } = await supabase
     .from('clients')
     .select('*')
+    .is('deleted_at', null)
     .order('id', { ascending: false })
 
   if (error) throw error
@@ -47,6 +48,7 @@ export const searchClientsAPI = async (searchTerm) => {
   const { data, error } = await supabase
     .from('clients')
     .select('*')
+    .is('deleted_at', null)
     .or(`name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%`)
     .order('id', { ascending: false })
 
